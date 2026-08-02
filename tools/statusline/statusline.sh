@@ -171,6 +171,37 @@ link() {  # link <url> <text>
   fi
 }
 
+# ctxpct — the percentage a bar is drawn from
+ctxpct() {
+  local n=${p_ctxpct%%.*}
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  if [ "$n" = 0 ] && [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null; then n=$(( p_in * 100 / p_ctx )); fi
+  [ "$n" -gt 100 ] && n=100
+  printf '%s' "$n"
+}
+
+# bar_of <filled> <empty> <width> — a progress bar at the current percentage
+bar_of() {
+  local fc=$1 ec=$2 w=$3 n i filled out=""
+  n=$(ctxpct)
+  filled=$(( n * w / 100 ))
+  for ((i=0; i<w; i++)); do
+    if [ $i -lt $filled ]; then out+=$fc; else out+=$ec; fi
+  done
+  printf '%s' "$out"
+}
+
+# a single character standing in for the whole level
+meter_of() {
+  local n scale i
+  n=$(ctxpct)
+  if [ "$cfg_icons" = "true" ]; then scale=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
+  else scale=(. : - = + '*' '#' '@'); fi
+  i=$(( n * ${#scale[@]} / 100 ))
+  [ "$i" -ge ${#scale[@]} ] && i=$(( ${#scale[@]} - 1 ))
+  printf '%s' "${scale[$i]}"
+}
+
 # home directory as ~
 tilde() {
   local d=$1
@@ -251,6 +282,12 @@ render() {
         if [ $i2 -lt $filled2 ]; then bar2+=$(ico '▰' '#'); else bar2+=$(ico '▱' '.'); fi
       done
       printf '%s %s/%s (%s)' "$(val "$bar2")" "$(tok "$p_in")" "$(tok "$p_ctx")" "$(val "${n2}%")" ;;
+    ctx_bar_slim)  [ -n "$p_ctxpct$p_ctx" ] && val "$(bar_of "$(ico '━' '=')" "$(ico '─' '-')" 10)" ;;
+    ctx_bar_dots)  [ -n "$p_ctxpct$p_ctx" ] && val "$(bar_of "$(ico '●' 'o')" "$(ico '○' '.')" 10)" ;;
+    ctx_bar_shade) [ -n "$p_ctxpct$p_ctx" ] && val "$(bar_of "$(ico '█' '#')" "$(ico '░' '.')" 10)" ;;
+    ctx_bar_pipe)  [ -n "$p_ctxpct$p_ctx" ] && val "$(bar_of "$(ico '▮' '#')" "$(ico '▯' '.')" 10)" ;;
+    ctx_bar_mini)  [ -n "$p_ctxpct$p_ctx" ] && val "$(bar_of "$(ico '▰' '#')" "$(ico '▱' '.')" 5)" ;;
+    ctx_bar_meter) [ -n "$p_ctxpct$p_ctx" ] && val "$(meter_of)" ;;
     out_tokens) [ "${p_out:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff "$(ico '↑' 'out') ")" "$(tok "$p_out")" ;;
     cache_read)  [ "${p_cread:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cache ')" "$(tok "$p_cread")" ;;
     cache_write) [ "${p_cwrite:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cw ')" "$(tok "$p_cwrite")" ;;
@@ -294,7 +331,9 @@ heatval() {
   case "$1" in
     rl5|rl5_bare) printf '%s' "$p_rl5" ;;
     rl7|rl7_bare) printf '%s' "$p_rl7" ;;
-    ctx_pct|ctx_bar|tokens|tokens_plain|tokens_pct|bar_tokens) printf '%s' "$p_ctxpct" ;;
+    ctx_pct|ctx_bar|tokens|tokens_plain|tokens_pct|bar_tokens|\
+    ctx_bar_slim|ctx_bar_dots|ctx_bar_shade|ctx_bar_pipe|ctx_bar_mini|ctx_bar_meter)
+      printf '%s' "$p_ctxpct" ;;
     ctx_left) printf '%s' "$p_ctxleft" ;;
   esac
 }

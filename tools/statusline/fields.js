@@ -34,6 +34,33 @@
     if (dir === h) return '~';
     return dir.indexOf(h + '/') === 0 ? '~' + dir.slice(h.length) : dir;
   }
+  // filled/empty glyph pair + width -> a bar at the payload's percentage
+  function ctxPct(p) {
+    var c = get(p, 'context_window');
+    if (!c) return null;
+    var n = c.used_percentage;
+    if (n === undefined || n === null) {
+      if (!c.context_window_size) return null;
+      n = c.total_input_tokens * 100 / c.context_window_size;
+    }
+    return Math.min(100, Math.floor(n));
+  }
+  function barOf(p, o, glyph, ascii, width) {
+    var n = ctxPct(p);
+    if (n === null) return '';
+    var filled = Math.floor(n * width / 100), out = '';
+    for (var i = 0; i < width; i++) {
+      out += (i < filled) ? ico(o, glyph[0], ascii[0]) : ico(o, glyph[1], ascii[1]);
+    }
+    return val(out);
+  }
+  function meterOf(p, o) {
+    var n = ctxPct(p);
+    if (n === null) return '';
+    var scale = o.icons ? ['▁','▂','▃','▄','▅','▆','▇','█'] : ['.',':','-','=','+','*','#','@'];
+    return val(scale[Math.min(scale.length - 1, Math.floor(n * scale.length / 100))]);
+  }
+
   function dur(ms) {
     if (ms === undefined || ms === null) return '';
     var sec = Math.floor(ms / 1000);
@@ -177,6 +204,30 @@
         for (var i = 0; i < 10; i++) s += (i < filled) ? ico(o, '▰', '#') : ico(o, '▱', '.');
         return val(s);
       } },
+    { id: 'ctx_bar_slim', group: 'Model', label: 'bar — slim lines', heat: true,
+      hint: 'Thin rule style: ━━━───────',
+      pct: function (p) { return ctxPct(p); },
+      preview: function (p, o) { return barOf(p, o, ['━', '─'], ['=', '-'], 10); } },
+    { id: 'ctx_bar_dots', group: 'Model', label: 'bar — dots', heat: true,
+      hint: 'Round beads: ●●●○○○○○○○',
+      pct: function (p) { return ctxPct(p); },
+      preview: function (p, o) { return barOf(p, o, ['●', '○'], ['o', '.'], 10); } },
+    { id: 'ctx_bar_shade', group: 'Model', label: 'bar — solid + shade', heat: true,
+      hint: 'Full blocks against a light shade: █████░░░░░',
+      pct: function (p) { return ctxPct(p); },
+      preview: function (p, o) { return barOf(p, o, ['█', '░'], ['#', '.'], 10); } },
+    { id: 'ctx_bar_pipe', group: 'Model', label: 'bar — upright bars', heat: true,
+      hint: 'Vertical cells: ▮▮▮▯▯▯▯▯▯▯',
+      pct: function (p) { return ctxPct(p); },
+      preview: function (p, o) { return barOf(p, o, ['▮', '▯'], ['#', '.'], 10); } },
+    { id: 'ctx_bar_mini', group: 'Model', label: 'bar — five wide', heat: true,
+      hint: 'Half the width, for a tight line: ▰▰▱▱▱',
+      pct: function (p) { return ctxPct(p); },
+      preview: function (p, o) { return barOf(p, o, ['▰', '▱'], ['#', '.'], 5); } },
+    { id: 'ctx_bar_meter', group: 'Model', label: 'bar — one character', heat: true,
+      hint: 'The whole level in a single glyph, ▁ through █',
+      pct: function (p) { return ctxPct(p); },
+      preview: function (p, o) { return meterOf(p, o); } },
     { id: 'bar_tokens', group: 'Model', label: 'bar + tokens used', heat: true,
       hint: 'The context bar with the count on the end, e.g. ▰▰▰▱▱▱▱▱▱▱ 41k/1000k (4%)',
       pct: function (p) { return get(p, 'context_window.used_percentage'); },

@@ -752,10 +752,27 @@
     if (f.id === 'ctx_left') return (100 - Math.floor(pctv)) + '%';
     if (f.id === 'rl5' || f.id === 'rl5_bare') return Math.floor(pctv) + '%';
     if (f.id === 'rl7' || f.id === 'rl7_bare') return Math.floor(pctv) + '%';
-    if (f.id === 'ctx_bar' || f.id === 'bar_tokens') {
-      var filled = Math.floor(pctv / 10), out = '';
-      for (var i = 0; i < 10; i++) out += (i < filled) ? (state.icons ? '▰' : '#') : (state.icons ? '▱' : '.');
+    var BARS = {
+      ctx_bar:       [['▰', '▱'], ['#', '.'], 10],
+      bar_tokens:    [['▰', '▱'], ['#', '.'], 10],
+      ctx_bar_slim:  [['━', '─'], ['=', '-'], 10],
+      ctx_bar_dots:  [['●', '○'], ['o', '.'], 10],
+      ctx_bar_shade: [['█', '░'], ['#', '.'], 10],
+      ctx_bar_pipe:  [['▮', '▯'], ['#', '.'], 10],
+      ctx_bar_mini:  [['▰', '▱'], ['#', '.'], 5]
+    };
+    if (BARS[f.id]) {
+      var spec = BARS[f.id], w = spec[2];
+      var filled = Math.floor(pctv * w / 100), out = '';
+      for (var i = 0; i < w; i++) {
+        out += (i < filled) ? (state.icons ? spec[0][0] : spec[1][0])
+                            : (state.icons ? spec[0][1] : spec[1][1]);
+      }
       return out;
+    }
+    if (f.id === 'ctx_bar_meter') {
+      var sc = state.icons ? ['▁','▂','▃','▄','▅','▆','▇','█'] : ['.',':','-','=','+','*','#','@'];
+      return sc[Math.min(sc.length - 1, Math.floor(pctv * sc.length / 100))];
     }
     return Math.floor(pctv) + '%';
   }
