@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"userhost","c":"bold-green"},{"f":"text","c":"grey","t":"|"},{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"green,green,green,green,green,yellow,yellow,red,red,bold-red"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"green,green,green,green,green,yellow,yellow,red,red,bold-red"},{"f":"text","c":"grey","t":"|"},{"f":"ctx_bar","c":"ramp","r":"green,green,green,green,green,yellow,yellow,red,red,bold-red"}],[{"f":"rule","c":"grey"}]]}'
+CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"ctx_bar","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"},{"f":"text","c":"grey","t":"|"},{"f":"tokens","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"}],[{"f":"rule","c":"grey"}]]}'
 
 input=$(cat)
 
@@ -87,7 +87,11 @@ basecode() {
   case "$1" in
     black) echo 30 ;; red) echo 31 ;; green) echo 32 ;; yellow) echo 33 ;;
     blue) echo 34 ;; magenta|purple) echo 35 ;; cyan) echo 36 ;; white) echo 37 ;;
-    grey|gray) echo '38;5;244' ;; dim) echo 2 ;; *) echo '' ;;
+    grey|gray) echo '38;5;244' ;; dim) echo 2 ;;
+    # cNNN is a 256-colour index — how orange and the smooth ramp shades are
+    # written, since the basic eight have no orange
+    c[0-9]*) echo "38;5;${1#c}" ;;
+    *) echo '' ;;
   esac
 }
 # ramp <comma-separated-colours> <percentage> — picks the band the value falls in.

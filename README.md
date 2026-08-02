@@ -111,8 +111,12 @@ Any field that carries a percentage is coloured **by value** by default: set
 climbs. Fewer than ten names is fine — the list is stretched over the range.
 
 ```
-{"f":"ctx_pct","c":"ramp","r":"blue,cyan,cyan,green,green,yellow,yellow,magenta,red,red"}
+{"f":"ctx_pct","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"}
 ```
+
+A colour name is one of the eight ANSI colours (optionally `bold-`), `grey`, `dim`, or
+`cNNN` for a 256-colour index — which is how the default ramp climbs smoothly from green at 0%
+through lime, yellow and orange to red near 100%, since the basic eight have no orange.
 
 A cell can carry `"i": false` to drop its built-in label — `out_tokens` normally renders
 `↑ 1k`, and with the label off it is just `1k`, so you can pair it with a symbol of your own.

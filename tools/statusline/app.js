@@ -21,6 +21,12 @@
   // ---------------------------------------------------------------- colours
   // Colour names must stay in sync with basecode() in statusline.sh.
   var COLOURS = ['default', 'dim', 'grey', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
+  // 256-colour shades for a smooth climb — the basic eight have no orange
+  var SHADES = ['c46', 'c82', 'c118', 'c154', 'c190', 'c226', 'c220', 'c214', 'c208', 'c202', 'c196'];
+  var SHADE_NAME = {
+    c46: 'green', c82: 'green', c118: 'lime', c154: 'lime', c190: 'yellow-green',
+    c226: 'yellow', c220: 'gold', c214: 'amber', c208: 'orange', c202: 'deep orange', c196: 'red'
+  };
 
   // Terminal colour schemes. The script only ever emits standard ANSI codes —
   // what they look like is entirely up to the terminal, so the preview lets you
@@ -103,14 +109,16 @@
   // A ramp is ten colours, one per 10% of the value: 0-9, 10-19, … 90-100.
   var RAMP_BANDS = 10;
   var RAMP_PRESETS = {
-    'green to red':   ['green', 'green', 'green', 'green', 'green', 'yellow', 'yellow', 'red', 'red', 'bold-red'],
+    'green to red':   ['c46', 'c82', 'c118', 'c154', 'c190', 'c226', 'c220', 'c214', 'c208', 'c196'],
+    'plain 8-colour': ['green', 'green', 'green', 'green', 'green', 'yellow', 'yellow', 'red', 'red', 'bold-red'],
     'cool to warm':   ['blue', 'blue', 'cyan', 'cyan', 'green', 'green', 'yellow', 'yellow', 'red', 'red'],
     'quiet until 70': ['dim', 'dim', 'dim', 'dim', 'dim', 'dim', 'dim', 'yellow', 'red', 'bold-red'],
     'ten steps':      ['blue', 'bold-blue', 'cyan', 'bold-cyan', 'green', 'bold-green',
                        'yellow', 'bold-yellow', 'red', 'bold-red']
   };
-  var RAMP_DEFAULT = ['green', 'green', 'green', 'green', 'green',
-                      'yellow', 'yellow', 'red', 'red', 'bold-red'];
+  // 0% green, climbing through yellow and orange to red near 100%
+  var RAMP_DEFAULT = ['c46', 'c82', 'c118', 'c154', 'c190',
+                      'c226', 'c220', 'c214', 'c208', 'c196'];
   function defaultRamp() { return RAMP_DEFAULT.slice(); }
   function rampOf(cell) {
     if (!cell.r) return defaultRamp();
@@ -128,10 +136,31 @@
 
   function scheme() { return SCHEMES[look.scheme] || SCHEMES['vscode-dark']; }
 
+  // 16-231 is a 6x6x6 cube, 232-255 is a greyscale ramp; 0-15 come from the
+  // terminal's own scheme so a 256-colour value previews like the rest.
+  var CUBE = [0, 95, 135, 175, 215, 255];
+  function xterm256(n) {
+    var s = scheme();
+    if (n < 8) return s.n[n];
+    if (n < 16) return s.b[n - 8];
+    if (n < 232) {
+      var i = n - 16;
+      return rgb(CUBE[Math.floor(i / 36)], CUBE[Math.floor((i % 36) / 6)], CUBE[i % 6]);
+    }
+    var g = 8 + (n - 232) * 10;
+    return rgb(g, g, g);
+  }
+  function rgb(r, g, b) {
+    return '#' + [r, g, b].map(function (v) {
+      return ('0' + v.toString(16)).slice(-2);
+    }).join('');
+  }
+
   function swatchHex(c) {
-    if (c === 'heat') return null;
+    if (c === 'heat' || c === 'ramp') return null;
     var s = scheme();
     var bold = c.indexOf('bold-') === 0, base = bold ? c.slice(5) : c;
+    if (/^c\d+$/.test(base)) return xterm256(Number(base.slice(1)));
     if (base === 'default') return bold ? s.b[7] : s.fg;
     if (base === 'dim') return s.fg;          // ANSI 2 dims the current colour
     if (base === 'grey') return s.b[0];       // 256-colour 244, closest to bright black
@@ -171,11 +200,11 @@
     grid: {
       name: 'The grid (3 rows)',
       cfg: {
-        v: 1, rule: true, align: true, icons: true,
+        v: 2, align: true, icons: true,
         rows: [
-          [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }],
-          [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }],
-          [BYVALUE('rl5'), BAR, BYVALUE('rl7'), BAR, BYVALUE('ctx_bar')],
+          [{ f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }],
+          [BYVALUE('ctx_bar'), BAR, BYVALUE('tokens'), BAR, { f: 'effort', c: 'dim' }],
+          [BYVALUE('rl5'), BAR, BYVALUE('rl7')],
           [RULE()]
         ]
       }
@@ -765,6 +794,7 @@
 
     var choices = COLOURS.slice();
     COLOURS.forEach(function (c) { if (c !== 'default' && c !== 'dim') choices.push('bold-' + c); });
+    choices = choices.concat(SHADES);
     if (f.heat) { choices.unshift('heat'); choices.unshift('ramp'); }
 
     choices.forEach(function (c) {
@@ -775,7 +805,7 @@
       b.dataset.c = c;
       b.title = c === 'heat' ? 'auto: green / yellow / red by usage'
               : c === 'ramp' ? 'colour by value, in ten bands you choose'
-              : c;
+              : (SHADE_NAME[c] ? SHADE_NAME[c] + ' (256-colour ' + c.slice(1) + ')' : c);
       if (c === 'ramp') {
         b.style.background = 'linear-gradient(90deg,' + rampOf(cell).map(function (rc, i) {
           return swatchHex(rc) + ' ' + (i * 10) + '% ' + ((i + 1) * 10) + '%';
@@ -917,12 +947,13 @@
     sws.className = 'swatches';
     var opts = COLOURS.slice();
     COLOURS.forEach(function (c) { if (c !== 'default' && c !== 'dim') opts.push('bold-' + c); });
+    opts = opts.concat(SHADES);
     opts.forEach(function (c) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'sw' + (list[activeBand] === c ? ' is-on' : '');
       b.dataset.c = c;
-      b.title = c;
+      b.title = SHADE_NAME[c] ? SHADE_NAME[c] + ' (256-colour ' + c.slice(1) + ')' : c;
       b.style.background = swatchHex(c);
       if (c.indexOf('bold-') === 0) { b.textContent = 'B'; b.style.color = '#10131a'; }
       b.addEventListener('click', function () {
