@@ -349,10 +349,28 @@
   }
 
   // -------------------------------------------------------------- palette UI
+  // Glyphs worth having to hand. They go in as custom-text cells, so they can
+  // be coloured and moved like any other field.
+  var SYMBOLS = [
+    { g: '↻', n: 'reset / refresh' }, { g: '⎇', n: 'branch' },
+    { g: '⚡', n: 'fast' },           { g: '⏱', n: 'time' },
+    { g: '●', n: 'dot filled' },      { g: '○', n: 'dot hollow' },
+    { g: '◆', n: 'diamond' },         { g: '▸', n: 'arrow right' },
+    { g: '→', n: 'to' },              { g: '↑', n: 'up' },
+    { g: '↓', n: 'down' },            { g: '✓', n: 'ok' },
+    { g: '✗', n: 'fail' },            { g: '★', n: 'star' },
+    { g: '⚙', n: 'settings' },        { g: '⌁', n: 'power' },
+    { g: '│', n: 'bar' },             { g: '·', n: 'middot' },
+    { g: '/', n: 'slash' },           { g: '—', n: 'dash' },
+    { g: '▰', n: 'bar full' },        { g: '▱', n: 'bar empty' }
+  ];
+
   function renderPalette() {
     var host = $('#palette');
     var q = ($('#filter').value || '').trim().toLowerCase();
+    var p = currentSample();
     var groups = {};
+
     FIELDS.forEach(function (f) {
       if (q && (f.label + ' ' + f.id + ' ' + (f.hint || '')).toLowerCase().indexOf(q) < 0) return;
       (groups[f.group] = groups[f.group] || []).push(f);
@@ -365,25 +383,63 @@
       var h = document.createElement('h4');
       h.textContent = g;
       box.appendChild(h);
+
       groups[g].forEach(function (f) {
         var b = document.createElement('button');
         b.className = 'pfield';
         b.type = 'button';
         b.dataset.field = f.id;
         b.title = f.hint || '';
-        b.appendChild(document.createTextNode(f.label));
-        if (f.hint) {
-          var s = document.createElement('small');
-          s.textContent = f.hint;
-          b.appendChild(s);
+
+        var label = document.createElement('span');
+        label.className = 'pl';
+        label.textContent = f.label;
+        b.appendChild(label);
+
+        // what this field would print, with the sample data currently selected
+        var sample = document.createElement('span');
+        sample.className = 'ps';
+        var text = '';
+        try { text = f.preview(p, { icons: !!state.icons }, { t: 'text' }) || ''; }
+        catch (e) { text = ''; }
+        if (text) {
+          sample.textContent = text;
+        } else {
+          sample.textContent = f.custom ? 'your own text' : 'nothing in this session';
+          sample.classList.add('is-off');
         }
+        b.appendChild(sample);
         box.appendChild(b);
       });
       host.appendChild(box);
     });
-    if (!host.children.length) {
-      host.innerHTML = '<p class="note">No field matches that.</p>';
+
+    // symbols, filtered by the same search box
+    var syms = SYMBOLS.filter(function (s2) {
+      return !q || s2.n.indexOf(q) >= 0 || s2.g === q || 'symbol glyph icon'.indexOf(q) >= 0;
+    });
+    if (syms.length) {
+      var sbox = document.createElement('div');
+      sbox.className = 'pgroup';
+      var sh = document.createElement('h4');
+      sh.textContent = 'Symbols';
+      sbox.appendChild(sh);
+      var grid = document.createElement('div');
+      grid.className = 'symgrid';
+      syms.forEach(function (s2) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sym';
+        b.textContent = s2.g;
+        b.title = s2.n + ' — adds it as text you can colour and move';
+        b.dataset.symbol = s2.g;
+        grid.appendChild(b);
+      });
+      sbox.appendChild(grid);
+      host.appendChild(sbox);
     }
+
+    if (!host.children.length) host.innerHTML = '<p class="hint">No field matches that.</p>';
   }
 
   // ---------------------------------------------------------------- rows UI
@@ -819,7 +875,11 @@
           width += state.sep.length;
         }
         var item = row[c] || { text: '', cell: { c: 'default' } };
-        if (item.text) frag.appendChild(span(item.text, item.cell.c, p, item.cell.f));
+        if (item.text) {
+          var node = span(item.text, item.cell.c, p, item.cell.f);
+          if (selected && selected.r === r && selected.c === c) node.classList.add('is-target');
+          frag.appendChild(node);
+        }
         width += item.text.length;
         if (c < last[r] && widths[c] > item.text.length) {
           frag.appendChild(document.createTextNode(' '.repeat(widths[c] - item.text.length)));
@@ -835,6 +895,7 @@
       e.textContent = 'Nothing to show — add a field, or pick different sample data.';
       term.appendChild(e);
       warn();
+      renderChrome();
       return;
     }
 
@@ -1115,7 +1176,16 @@
     renderRows();
 
     $('#filter').addEventListener('input', renderPalette);
-    $('#sample').addEventListener('change', function () { renderRows(); update(); });
+    $('#palette').addEventListener('click', function (e) {
+      var b = e.target.closest('.sym');
+      if (!b) return;
+      if (!state.rows.length) state.rows.push([]);
+      var r = state.rows.length - 1;
+      state.rows[r].push({ f: 'text', c: 'dim', t: b.dataset.symbol });
+      selected = { r: r, c: state.rows[r].length - 1 };
+      commit();
+    });
+    $('#sample').addEventListener('change', function () { renderPalette(); renderRows(); update(); });
     ['#sep', '#sepColor', '#optAlign', '#optRule', '#optIcons', '#optFit',
      '#optLinks', '#optDivider', '#padding', '#refresh', '#optHideVim'].forEach(function (s) {
       $(s).addEventListener('change', readOptions);

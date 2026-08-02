@@ -59,16 +59,35 @@
   letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3);
 }
 .pfield {
-  display: block; width: 100%; text-align: left;
-  font-family: var(--mono); font-size: .78125rem;
+  display: grid; gap: 1px; width: 100%; text-align: left;
   padding: 6px 8px; margin-bottom: 2px;
   background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
-  color: var(--fg-2); cursor: grab; line-height: 1.35;
+  cursor: grab; line-height: 1.3;
 }
-.pfield:hover { background: var(--bg-3); border-color: var(--line); color: var(--fg); }
+.pfield:hover { background: var(--bg-3); border-color: var(--line); }
 .pfield:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 .pfield:active { cursor: grabbing; }
-.pfield small { display: none; }
+.pfield .pl {
+  font-family: var(--mono); font-size: .78125rem; color: var(--fg-2);
+}
+.pfield:hover .pl { color: var(--fg); }
+/* what the field prints with the sample data currently selected */
+.pfield .ps {
+  font-family: var(--mono); font-size: .6875rem; color: var(--data);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pfield .ps.is-off { color: var(--fg-3); font-style: italic; opacity: .8; }
+
+/* symbols, added as custom text you can colour and move */
+.symgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+.sym {
+  aspect-ratio: 1; display: grid; place-items: center;
+  font-family: var(--mono); font-size: .875rem;
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 3px;
+  color: var(--fg-2); cursor: pointer; padding: 0;
+}
+.sym:hover { border-color: var(--accent); color: var(--accent); }
+.sym:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---------- the terminal window ---------- */
 .termwin {
@@ -143,6 +162,13 @@
 /* the status line row — indented two columns, exactly as Claude Code renders it */
 .term { display: block; padding-left: 2ch; min-height: 1.5em; margin-top: 2px; }
 .term .empty { opacity: .45; font-style: italic; }
+/* the cell you have selected, outlined where it lands in the terminal */
+.term .is-target {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
 
 /* the built-in footer badges below it */
 .term-badges { display: block; padding-left: 2ch; margin-top: 2px; }
