@@ -449,7 +449,12 @@
     { g: '⚙', n: 'settings' },        { g: '⌁', n: 'power' },
     { g: '│', n: 'bar' },             { g: '·', n: 'middot' },
     { g: '/', n: 'slash' },           { g: '—', n: 'dash' },
-    { g: '▰', n: 'bar full' },        { g: '▱', n: 'bar empty' }
+    { g: '▰', n: 'bar full' },        { g: '▱', n: 'bar empty' },
+    { g: '🔥', n: 'fire' },            { g: '⚡', n: 'bolt' },
+    { g: '🚀', n: 'rocket' },          { g: '🧠', n: 'brain' },
+    { g: '📁', n: 'folder' },          { g: '🌿', n: 'branch' },
+    { g: '⏳', n: 'hourglass' },       { g: '💾', n: 'save' },
+    { g: '🎯', n: 'target' },          { g: '🔔', n: 'bell' }
   ];
 
   function renderPalette() {
@@ -1444,7 +1449,8 @@
       if (isRuleRow(row)) return null;                 // drawn once widths are known
       return row.map(function (cell) {
         var raw = previewCell(cell, p);
-        return { text: raw, plain: stripMarks(raw), cell: cell };
+        var flat = stripMarks(raw);
+        return { text: raw, plain: flat, w: cells(flat), cell: cell };
       });
     });
     var last = grid.map(function (row) {
@@ -1459,7 +1465,7 @@
       var w = 0;
       grid.forEach(function (row, r) {
         if (!row || last[r] < 0) return;
-        if (row[c] && row[c].plain.length > w) w = row[c].plain.length;
+        if (row[c] && row[c].w > w) w = row[c].w;
       });
       widths.push(state.align ? w : 0);
     }
@@ -1470,8 +1476,8 @@
       if (!row || last[r] < 0) return;
       var w = 0;
       for (var c = 0; c <= last[r]; c++) {
-        var t = (row[c] && row[c].plain) || '';
-        w += Math.max(widths[c] || 0, t.length) + (c > 0 ? 1 : 0);
+        var cw = (row[c] && row[c].w) || 0;
+        w += Math.max(widths[c] || 0, cw) + (c > 0 ? 1 : 0);
       }
       if (w > wide) wide = w;
     });
@@ -1502,10 +1508,10 @@
           node.dataset.c = c;
           frag.appendChild(node);
         }
-        width += item.plain.length;
-        if (c < last[r] && widths[c] > item.plain.length) {
-          frag.appendChild(document.createTextNode(' '.repeat(widths[c] - item.plain.length)));
-          width += widths[c] - item.plain.length;
+        width += item.w;
+        if (c < last[r] && widths[c] > item.w) {
+          frag.appendChild(document.createTextNode(' '.repeat(widths[c] - item.w)));
+          width += widths[c] - item.w;
         }
       }
       lines.push({ frag: frag, width: width });
@@ -1545,6 +1551,33 @@
 
   var VS = '\u0002', VE = '\u0003';
   function stripMarks(t) { return String(t).replace(/[\u0002\u0003]/g, ''); }
+
+  // Columns are display cells, not characters: an emoji or a CJK glyph takes
+  // two, and combining marks and variation selectors take none. Counting them
+  // all as one is what throws a line with an emoji in it out of alignment.
+  var WIDE = [
+    [0x1100, 0x115F], [0x2E80, 0x303E], [0x3041, 0x33FF], [0x3400, 0x4DBF],
+    [0x4E00, 0x9FFF], [0xA000, 0xA4CF], [0xAC00, 0xD7A3], [0xF900, 0xFAFF],
+    [0xFE30, 0xFE6F], [0xFF00, 0xFF60], [0xFFE0, 0xFFE6],
+    [0x1F300, 0x1F64F], [0x1F680, 0x1F6FF], [0x1F900, 0x1F9FF], [0x1FA70, 0x1FAFF]
+  ];
+  var ZERO = [[0x0300, 0x036F], [0x200B, 0x200F], [0x20D0, 0x20FF], [0xFE00, 0xFE0F]];
+  function inAny(cp, ranges) {
+    for (var i = 0; i < ranges.length; i++) {
+      if (cp >= ranges[i][0] && cp <= ranges[i][1]) return true;
+    }
+    return false;
+  }
+  function cells(text) {
+    var t = stripMarks(text), w = 0;
+    for (var i = 0; i < t.length; ) {
+      var cp = t.codePointAt(i);
+      i += cp > 0xFFFF ? 2 : 1;
+      if (inAny(cp, ZERO)) continue;
+      w += inAny(cp, WIDE) ? 2 : 1;
+    }
+    return w;
+  }
 
   function span(text, colour, p, fieldId, cell) {
     // With a ramp or heat, only the marked value takes that colour; the rest of

@@ -153,6 +153,10 @@ sets them.
   breaks boolean options; the script uses an explicit null check instead.
 - **Field parsing uses `IFS=$'\037'`.** A whitespace `IFS` collapses runs of empty fields and
   shifts every later value into the wrong variable.
+- **Emoji work, and are measured properly.** Column widths are counted in display
+  cells rather than characters, so an emoji or a CJK glyph counts as two and combining
+  marks and variation selectors count as none. Without that, one emoji shifts every
+  column after it by a cell.
 - **Ambiguous-width glyphs.** `⎇`, `↻` and the bar characters render double-width in some
   terminals (Windows Terminal especially), which breaks column alignment and makes glyphs collide
   with the next character. Turn **Unicode icons** off for plain ASCII, and note the script always

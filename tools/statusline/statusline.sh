@@ -339,9 +339,38 @@ heatval() {
   esac
 }
 
-# Length of a cell as the terminal sees it: escape sequences take no columns.
+# How many columns a character occupies. Emoji and CJK take two cells, and
+# combining marks, variation selectors and joiners take none — counting them all
+# as one is what makes a line with an emoji in it drift out of alignment.
+charwidth() {
+  local cp=$1
+  if   (( cp >= 0x0300 && cp <= 0x036F )) ||
+       (( cp >= 0x200B && cp <= 0x200F )) ||
+       (( cp >= 0x20D0 && cp <= 0x20FF )) ||
+       (( cp >= 0xFE00 && cp <= 0xFE0F )); then echo 0
+  elif (( cp >= 0x1100 && cp <= 0x115F )) ||
+       (( cp >= 0x2E80 && cp <= 0x303E )) ||
+       (( cp >= 0x3041 && cp <= 0x33FF )) ||
+       (( cp >= 0x3400 && cp <= 0x4DBF )) ||
+       (( cp >= 0x4E00 && cp <= 0x9FFF )) ||
+       (( cp >= 0xA000 && cp <= 0xA4CF )) ||
+       (( cp >= 0xAC00 && cp <= 0xD7A3 )) ||
+       (( cp >= 0xF900 && cp <= 0xFAFF )) ||
+       (( cp >= 0xFE30 && cp <= 0xFE6F )) ||
+       (( cp >= 0xFF00 && cp <= 0xFF60 )) ||
+       (( cp >= 0xFFE0 && cp <= 0xFFE6 )) ||
+       (( cp >= 0x1F300 && cp <= 0x1F64F )) ||
+       (( cp >= 0x1F680 && cp <= 0x1F6FF )) ||
+       (( cp >= 0x1F900 && cp <= 0x1F9FF )) ||
+       (( cp >= 0x1FA70 && cp <= 0x1FAFF )); then echo 2
+  else echo 1
+  fi
+}
+
+# Width of a cell as the terminal sees it: escape sequences and the value
+# markers take no columns, wide characters take two.
 vislen() {
-  local t=${1//[$'\002\003']/} out=""
+  local t=${1//[$'\002\003']/} out="" i ch cp w=0
   while [[ $t == *$'\033'* ]]; do
     out+=${t%%$'\033'*}
     t=${t#*$'\033'}
@@ -352,7 +381,18 @@ vislen() {
     esac
   done
   out+=$t
-  printf '%s' "${#out}"
+  # ASCII-only is the common case, and counting it character by character is
+  # needless work on a line that redraws constantly
+  if [[ $out != *[![:ascii:]]* ]]; then
+    printf '%s' "${#out}"
+    return
+  fi
+  for (( i=0; i<${#out}; i++ )); do
+    ch=${out:i:1}
+    printf -v cp '%d' "'$ch"
+    w=$(( w + $(charwidth "$cp") ))
+  done
+  printf '%s' "$w"
 }
 
 # --- build the grid --------------------------------------------------------
