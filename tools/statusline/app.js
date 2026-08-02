@@ -528,7 +528,11 @@
     x.addEventListener('click', function (e) { e.stopPropagation(); removeCell(r, c); });
 
     el.append(grip, sw, name, x);
-    el.addEventListener('click', function () { selected = { r: r, c: c }; renderRows(); });
+    el.addEventListener('click', function () {
+      selected = { r: r, c: c };
+      renderRows();
+      renderPreview();
+    });
     return el;
   }
 
