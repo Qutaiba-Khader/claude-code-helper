@@ -260,8 +260,9 @@
     mid: {
       label: 'mid-session',
       p: {
-        session_id: 'x', version: '2.1.220', cwd: '/root/projects/claude-code-helper',
-        session_name: 'helper-site',
+        session_id: 'a2f81b60-3d47-4e9a-b5c8-7f012e6d4a19',
+        version: '2.1.220', cwd: '/root/projects/claude-code-helper',
+        session_name: 'status line builder',
         output_style: { name: 'Concise' },
         model: { id: 'claude-opus-5[1m]', display_name: 'Opus 5' },
         workspace: {
@@ -285,7 +286,8 @@
     fresh: {
       label: 'fresh session',
       p: {
-        session_id: 'x', version: '2.1.220', cwd: '/root',
+        session_id: '7f3a91c2-4e88-4b0d-9a11-c2e5d0b7a334', session_name: 'first look',
+        version: '2.1.220', cwd: '/root',
         output_style: { name: 'default' },
         model: { id: 'claude-sonnet-5', display_name: 'Sonnet 5' },
         workspace: { current_dir: '/root', project_dir: '/root' },
@@ -299,7 +301,8 @@
     limits: {
       label: 'near the limits',
       p: {
-        session_id: 'x', version: '2.1.220', cwd: '/root/work/big-migration',
+        session_id: 'b81d4f0e-2a67-4c93-8f15-6d0e9a7c1b52', session_name: 'billing migration',
+        version: '2.1.220', cwd: '/root/work/big-migration',
         model: { id: 'claude-opus-5', display_name: 'Opus 5' },
         workspace: {
           current_dir: '/root/work/big-migration', project_dir: '/root/work/big-migration',
@@ -322,14 +325,18 @@
     bare: {
       label: 'no subscription data',
       p: {
-        session_id: 'x', version: '2.1.220', cwd: '/home/dev/app',
+        session_id: 'c04e7a3b-91d2-4f6e-a8c7-3b15e2d90f48', session_name: 'refactor auth',
+        version: '2.1.220', cwd: '/home/dev/app',
         model: { id: 'claude-sonnet-5', display_name: 'Sonnet 5' },
         workspace: { current_dir: '/home/dev/app', project_dir: '/home/dev/app' },
         context_window: {
           total_input_tokens: 88000, total_output_tokens: 900,
           context_window_size: 200000, used_percentage: 44, remaining_percentage: 56
         },
-        thinking: { enabled: true }, _git_branch: 'develop', _git_dirty: false, _now: NOW
+        thinking: { enabled: true }, output_style: { name: 'Explanatory' },
+        cost: { total_duration_ms: 1_260_000, total_api_duration_ms: 74_000,
+                total_lines_added: 38, total_lines_removed: 12 },
+        _git_branch: 'develop', _git_dirty: false, _now: NOW
       }
     }
   };
