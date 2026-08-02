@@ -66,7 +66,7 @@ that line swapped, and `install.sh` does the same substitution server-side.
 | `tok(n)` | `41500` → `41k`. |
 | `countdown(v)` | Epoch seconds *or* ISO-8601 → `3h43m` / `2d4h`. Empty when the reset is in the past. |
 | `tilde(dir)` | `$HOME` → `~`. |
-| `render(field, text)` | **The field catalogue.** One `case` arm per field id. Adding a field means adding an arm here *and* an entry in `fields.js`. |
+| `render(field, text, showicon)` | **The field catalogue.** One `case` arm per field id. `aff <text>` wraps any leading glyph or word so it disappears when the cell's icon flag is off. Adding a field means adding an arm here *and* an entry in `fields.js`. |
 | `heatval(field)` | Which percentage a `heat`-coloured field grades against. |
 | *(layout block)* | Builds the `TXT`/`FMT` maps, drops all-empty rows, trims trailing empty cells, computes per-column widths, prints, then draws the rule sized to the widest row. |
 
@@ -86,6 +86,7 @@ Defines `window.CCH_FIELDS` (array) and `window.CCH_FIELD` (id → field). Each 
   heat?: true,          // can be auto-coloured by a percentage
   pct?(payload),        // which percentage grades it
   custom?: true,        // takes a user-supplied string (the `text` field)
+  icon?: '↑',           // the built-in label, which a cell can switch off with i:false
   preview(payload, opts, cell) }   // must mirror render() in statusline.sh
 ```
 

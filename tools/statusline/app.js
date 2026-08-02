@@ -305,6 +305,7 @@
         return row.map(function (cell) {
           var o = { f: cell.f, c: cell.c || 'default' };
           if (cell.f === 'text') o.t = cell.t || '';
+          if (cell.i === false) o.i = false;
           return o;
         });
       })
@@ -518,6 +519,13 @@
     var name = document.createElement('span');
     name.className = 'name';
     name.textContent = cell.f === 'text' ? (cell.t ? '"' + cell.t + '"' : 'text') : f.label;
+    if (cell.i === false) {
+      var bare = document.createElement('span');
+      bare.className = 'bare';
+      bare.textContent = 'bare';
+      bare.title = 'the ' + f.icon + ' label is turned off';
+      el.appendChild(bare);
+    }
 
     var x = document.createElement('button');
     x.className = 'x';
@@ -605,6 +613,29 @@
     swWrap.append(swLabel, sws);
 
     box.append(head, swWrap);
+
+    if (f.icon) {
+      var ir = document.createElement('div');
+      ir.className = 'irow';
+      var lab = document.createElement('label');
+      lab.className = 'check';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = cell.i !== false;
+      cb.addEventListener('change', function () {
+        if (cb.checked) delete cell.i; else cell.i = false;
+        commit();
+      });
+      lab.append(cb, document.createTextNode('Show the "' + f.icon + '" label'));
+      var note = document.createElement('p');
+      note.className = 'hint';
+      note.style.margin = '0';
+      note.textContent = 'Off gives you the bare value, so you can put your own symbol beside it.';
+      var wrap = document.createElement('div');
+      wrap.append(lab, note);
+      ir.appendChild(wrap);
+      box.appendChild(ir);
+    }
 
     if (f.custom) {
       var row = document.createElement('div');

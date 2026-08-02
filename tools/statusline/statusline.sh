@@ -156,7 +156,9 @@ tilde() {
 # --- field renderers -------------------------------------------------------
 # render <field-id> <custom-text> -> the cell's text (empty = cell omitted)
 render() {
-  local f=$1 txt=$2 v
+  local f=$1 txt=$2 showicon=${3:-1} v
+  # aff <text> — a leading glyph or word, dropped when the cell's icon is off
+  aff() { [ "$showicon" = "1" ] && printf '%s' "$1"; }
   case "$f" in
     text)      printf '%s' "$txt" ;;
     user)      whoami ;;
@@ -170,14 +172,14 @@ render() {
       if br=$(git --no-optional-locks -C "$p_cwd" rev-parse --abbrev-ref HEAD 2>/dev/null); then
         [ "$br" = "HEAD" ] && br=$(git --no-optional-locks -C "$p_cwd" rev-parse --short HEAD 2>/dev/null)
         git --no-optional-locks -C "$p_cwd" diff --quiet --ignore-submodules HEAD 2>/dev/null || dirty="*"
-        printf '%s %s%s' "$(ico '⎇' 'git:')" "$br" "$dirty"
+        printf '%s%s%s' "$(aff "$(ico '⎇' 'git:') ")" "$br" "$dirty"
       elif [ -n "$p_wtbranch" ]; then
-        printf '%s %s' "$(ico '⎇' 'git:')" "$p_wtbranch"
+        printf '%s%s' "$(aff "$(ico '⎇' 'git:') ")" "$p_wtbranch"
       fi ;;
     repo)      [ -n "$p_repo" ] && printf '%s/%s' "$p_owner" "$p_repo" ;;
     pr)        [ -n "$p_prnum" ] && link "$p_prurl" "PR #$p_prnum${p_prstate:+ ($p_prstate)}" ;;
-    worktree)  [ -n "$p_wt" ] && printf '%s %s' "$(ico '⑂' 'wt:')" "$p_wt" ;;
-    git_worktree) [ -n "$p_gwt" ] && printf '%s %s' "$(ico '⑂' 'wt:')" "$p_gwt" ;;
+    worktree)  [ -n "$p_wt" ] && printf '%s%s' "$(aff "$(ico '⑂' 'wt:') ")" "$p_wt" ;;
+    git_worktree) [ -n "$p_gwt" ] && printf '%s%s' "$(aff "$(ico '⑂' 'wt:') ")" "$p_gwt" ;;
     added_dirs)   [ "${p_adddirs:-0}" -gt 0 ] 2>/dev/null && printf '+%s dir' "$p_adddirs" ;;
     model)     printf '%s' "$p_model" ;;
     model_ctx)
@@ -193,8 +195,8 @@ render() {
     tokens_plain)
       [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null || return
       printf '%s/%s' "$(tok "$p_in")" "$(tok "$p_ctx")" ;;
-    ctx_pct)   [ -n "$p_ctxpct" ]  && printf 'ctx %s' "$(pct "$p_ctxpct")" ;;
-    ctx_left)  [ -n "$p_ctxleft" ] && printf '%s left' "$(pct "$p_ctxleft")" ;;
+    ctx_pct)   [ -n "$p_ctxpct" ]  && printf '%s%s' "$(aff 'ctx ')" "$(pct "$p_ctxpct")" ;;
+    ctx_left)  [ -n "$p_ctxleft" ] && printf '%s%s' "$(pct "$p_ctxleft")" "$(aff ' left')" ;;
     ctx_bar)
       [ -n "$p_ctxpct" ] || return
       local n=${p_ctxpct%%.*} i filled bar=""
@@ -203,33 +205,33 @@ render() {
         if [ $i -lt $filled ]; then bar+=$(ico '▰' '#'); else bar+=$(ico '▱' '.'); fi
       done
       printf '%s' "$bar" ;;
-    out_tokens) [ "${p_out:-0}" -gt 0 ] 2>/dev/null && printf '%s %s' "$(ico '↑' 'out')" "$(tok "$p_out")" ;;
-    cache_read)  [ "${p_cread:-0}" -gt 0 ] 2>/dev/null && printf 'cache %s' "$(tok "$p_cread")" ;;
-    cache_write) [ "${p_cwrite:-0}" -gt 0 ] 2>/dev/null && printf 'cw %s' "$(tok "$p_cwrite")" ;;
-    over200k)    [ "$p_over200k" = "true" ] && ico '⚠ 200k+' '!200k+' ;;
+    out_tokens) [ "${p_out:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff "$(ico '↑' 'out') ")" "$(tok "$p_out")" ;;
+    cache_read)  [ "${p_cread:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cache ')" "$(tok "$p_cread")" ;;
+    cache_write) [ "${p_cwrite:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cw ')" "$(tok "$p_cwrite")" ;;
+    over200k)    [ "$p_over200k" = "true" ] && printf '%s200k+' "$(aff "$(ico '⚠ ' '!')")" ;;
     effort)    printf '%s' "$p_effort" ;;
     thinking)  [ "$p_think" = "false" ] && printf 'no-think' ;;
     fast)      [ "$p_fast" = "true" ] && ico '⚡' 'fast' ;;
     style)     [ -n "$p_style" ] && [ "$p_style" != "default" ] && printf '%s' "$p_style" ;;
     vim)       [ -n "$p_vim" ] && printf '%s' "$p_vim" ;;
-    agent)     [ -n "$p_agent" ] && printf '@%s' "$p_agent" ;;
+    agent)     [ -n "$p_agent" ] && printf '%s%s' "$(aff '@')" "$p_agent" ;;
     session)   printf '%s' "$p_session" ;;
-    version)   [ -n "$p_version" ] && printf 'v%s' "$p_version" ;;
+    version)   [ -n "$p_version" ] && printf '%s%s' "$(aff 'v')" "$p_version" ;;
     rl5)
       [ -n "$p_rl5" ] || return
-      v="5h $(pct "$p_rl5")"
-      local cd; cd=$(countdown "$p_rl5r"); [ -n "$cd" ] && v="$v $(ico '↻' 'in') $cd"
+      v="$(aff '5h ')$(pct "$p_rl5")"
+      local cd; cd=$(countdown "$p_rl5r"); [ -n "$cd" ] && v="$v $(aff "$(ico '↻' 'in') ")$cd"
       printf '%s' "$v" ;;
     rl7)
       [ -n "$p_rl7" ] || return
-      v="7d $(pct "$p_rl7")"
-      local cd; cd=$(countdown "$p_rl7r"); [ -n "$cd" ] && v="$v $(ico '↻' 'in') $cd"
+      v="$(aff '7d ')$(pct "$p_rl7")"
+      local cd; cd=$(countdown "$p_rl7r"); [ -n "$cd" ] && v="$v $(aff "$(ico '↻' 'in') ")$cd"
       printf '%s' "$v" ;;
-    rl5_bare) [ -n "$p_rl5" ] && printf '5h %s' "$(pct "$p_rl5")" ;;
-    rl7_bare) [ -n "$p_rl7" ] && printf '7d %s' "$(pct "$p_rl7")" ;;
+    rl5_bare) [ -n "$p_rl5" ] && printf '%s%s' "$(aff '5h ')" "$(pct "$p_rl5")" ;;
+    rl7_bare) [ -n "$p_rl7" ] && printf '%s%s' "$(aff '7d ')" "$(pct "$p_rl7")" ;;
     cost)     [ -n "$p_cost" ] && printf '$%.2f' "$p_cost" 2>/dev/null ;;
     duration)     dur "$p_dur" ;;
-    api_duration) v=$(dur "$p_apidur"); [ -n "$v" ] && printf 'api %s' "$v" ;;
+    api_duration) v=$(dur "$p_apidur"); [ -n "$v" ] && printf '%s%s' "$(aff 'api ')" "$v" ;;
     lines)
       [ -n "$p_added$p_removed" ] || return
       printf '+%s/-%s' "${p_added:-0}" "${p_removed:-0}" ;;
@@ -271,18 +273,19 @@ vislen() {
 # One line per cell: row \x1f field \x1f colour \x1f custom-text
 mapfile -t CELLS < <(printf '%s' "$CONFIG" | jq -r '
   .rows // [] | to_entries[] as $r | $r.value | to_entries[] |
-  [ ($r.key|tostring), (.value.f // ""), (.value.c // ""), (.value.t // "") ]
+  [ ($r.key|tostring), (.value.f // ""), (.value.c // ""), (.value.t // ""),
+    (if .value.i == false then "0" else "1" end) ]
   | join("\u001f")' 2>/dev/null)
 
 declare -A TXT FMT LEN
 declare -a COUNT
 nrows=0; ncols=0
 for line in "${CELLS[@]}"; do
-  IFS=$'\037' read -r r f c t <<<"$line"
+  IFS=$'\037' read -r r f c t ci <<<"$line"
   [ -n "$f" ] || continue
   # cells are laid out in the order they appear, gaps closed up per row
   idx=${COUNT[$r]:-0}; COUNT[$r]=$(( idx + 1 ))
-  txt=$(render "$f" "$t")
+  txt=$(render "$f" "$t" "$ci")
   TXT[$r,$idx]=$txt
   LEN[$r,$idx]=$(vislen "$txt")
   if [ "$c" = "heat" ]; then FMT[$r,$idx]=$(heat "$(heatval "$f")")

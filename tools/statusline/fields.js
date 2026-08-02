@@ -15,6 +15,8 @@
   'use strict';
 
   function ico(o, glyph, ascii) { return o.icons ? glyph : ascii; }
+  // an affix (glyph or word) is dropped when the cell has its icon turned off
+  function af(cell, text) { return (cell && cell.i === false) ? '' : text; }
   function tok(n) { n = n || 0; return n >= 1000 ? Math.floor(n / 1000) + 'k' : String(n); }
   function pct(v) { return Math.floor(Number(v)) + '%'; }
   function home(dir) {
@@ -70,9 +72,10 @@
     { id: 'project', group: 'Project', label: 'project name', hint: 'Name of the project root directory',
       preview: function (p) { var d = get(p, 'workspace.project_dir'); return d ? d.split('/').pop() : ''; } },
     { id: 'branch', group: 'Project', label: 'git branch', hint: 'Branch, with * when the tree is dirty',
-      preview: function (p, o) {
+      icon: '⎇',
+      preview: function (p, o, cell) {
         var b = get(p, '_git_branch'); if (!b) return '';
-        return ico(o, '⎇', 'git:') + ' ' + b + (get(p, '_git_dirty') ? '*' : '');
+        return af(cell, ico(o, '⎇', 'git:') + ' ') + b + (get(p, '_git_dirty') ? '*' : '');
       } },
     { id: 'repo', group: 'Project', label: 'owner/repo', hint: 'From the origin remote',
       preview: function (p) {
@@ -85,12 +88,14 @@
         return 'PR #' + n + (s ? ' (' + s + ')' : '');
       } },
     { id: 'worktree', group: 'Project', label: 'worktree', hint: 'Only in a --worktree session',
-      preview: function (p, o) {
-        var w = get(p, 'worktree.name'); return w ? ico(o, '⑂', 'wt:') + ' ' + w : '';
+      icon: '⑂',
+      preview: function (p, o, cell) {
+        var w = get(p, 'worktree.name'); return w ? af(cell, ico(o, '⑂', 'wt:') + ' ') + w : '';
       } },
     { id: 'git_worktree', group: 'Project', label: 'git worktree', hint: 'Any linked git worktree, not just --worktree sessions',
-      preview: function (p, o) {
-        var w = get(p, 'workspace.git_worktree'); return w ? ico(o, '⑂', 'wt:') + ' ' + w : '';
+      icon: '⑂',
+      preview: function (p, o, cell) {
+        var w = get(p, 'workspace.git_worktree'); return w ? af(cell, ico(o, '⑂', 'wt:') + ' ') + w : '';
       } },
     { id: 'added_dirs', group: 'Project', label: 'added dirs', hint: 'How many directories were added with /add-dir',
       preview: function (p) {
@@ -123,15 +128,17 @@
       } },
     { id: 'ctx_pct', group: 'Model', label: 'context used %', hint: 'Pre-calculated by Claude Code', heat: true,
       pct: function (p) { return get(p, 'context_window.used_percentage'); },
-      preview: function (p) {
+      icon: 'ctx',
+      preview: function (p, o, cell) {
         var v = get(p, 'context_window.used_percentage');
-        return (v === undefined || v === null) ? '' : 'ctx ' + pct(v);
+        return (v === undefined || v === null) ? '' : af(cell, 'ctx ') + pct(v);
       } },
     { id: 'ctx_left', group: 'Model', label: 'context remaining %', hint: 'How much room is left', heat: true,
       pct: function (p) { return get(p, 'context_window.used_percentage'); },
-      preview: function (p) {
+      icon: 'left',
+      preview: function (p, o, cell) {
         var v = get(p, 'context_window.remaining_percentage');
-        return (v === undefined || v === null) ? '' : pct(v) + ' left';
+        return (v === undefined || v === null) ? '' : pct(v) + af(cell, ' left');
       } },
     { id: 'ctx_bar', group: 'Model', label: 'context bar', hint: 'Ten-segment usage bar', heat: true,
       pct: function (p) { return get(p, 'context_window.used_percentage'); },
@@ -143,22 +150,28 @@
         return s;
       } },
     { id: 'out_tokens', group: 'Model', label: 'output tokens', hint: 'From the most recent response',
-      preview: function (p, o) {
+      icon: '↑',
+      preview: function (p, o, cell) {
         var v = get(p, 'context_window.total_output_tokens');
-        return v ? ico(o, '↑', 'out') + ' ' + tok(v) : '';
+        return v ? af(cell, ico(o, '↑', 'out') + ' ') + tok(v) : '';
       } },
     { id: 'cache_read', group: 'Model', label: 'cache read', hint: 'Tokens read from the prompt cache on the last call',
-      preview: function (p) {
+      icon: 'cache',
+      preview: function (p, o, cell) {
         var v = get(p, 'context_window.current_usage.cache_read_input_tokens');
-        return v ? 'cache ' + tok(v) : '';
+        return v ? af(cell, 'cache ') + tok(v) : '';
       } },
     { id: 'cache_write', group: 'Model', label: 'cache write', hint: 'Tokens written to the prompt cache on the last call',
-      preview: function (p) {
+      icon: 'cw',
+      preview: function (p, o, cell) {
         var v = get(p, 'context_window.current_usage.cache_creation_input_tokens');
-        return v ? 'cw ' + tok(v) : '';
+        return v ? af(cell, 'cw ') + tok(v) : '';
       } },
     { id: 'over200k', group: 'Model', label: 'over 200k', hint: 'Flag: last response exceeded 200k tokens (fixed threshold)',
-      preview: function (p, o) { return p.exceeds_200k_tokens ? ico(o, '⚠ 200k+', '!200k+') : ''; } },
+      icon: '⚠',
+      preview: function (p, o, cell) {
+        return p.exceeds_200k_tokens ? af(cell, ico(o, '⚠ ', '!')) + '200k+' : '';
+      } },
 
     // ---- session ----
     { id: 'effort', group: 'Session', label: 'effort', hint: 'low / medium / high / xhigh / max',
@@ -175,38 +188,46 @@
     { id: 'vim', group: 'Session', label: 'vim mode', hint: 'Only when vim mode is enabled',
       preview: function (p) { return get(p, 'vim.mode') || ''; } },
     { id: 'agent', group: 'Session', label: 'agent', hint: 'Only when started with --agent',
-      preview: function (p) { var a = get(p, 'agent.name'); return a ? '@' + a : ''; } },
+      icon: '@',
+      preview: function (p, o, cell) { var a = get(p, 'agent.name'); return a ? af(cell, '@') + a : ''; } },
     { id: 'session', group: 'Session', label: 'session name', hint: 'Set with /rename',
       preview: function (p) { return p.session_name || ''; } },
     { id: 'version', group: 'Session', label: 'Claude Code version', hint: 'e.g. v2.1.220',
-      preview: function (p) { return p.version ? 'v' + p.version : ''; } },
+      icon: 'v',
+      preview: function (p, o, cell) { return p.version ? af(cell, 'v') + p.version : ''; } },
     { id: 'session_id', group: 'Session', label: 'session id', hint: 'First 8 characters — handy to tell sessions apart',
       preview: function (p) { return p.session_id ? String(p.session_id).slice(0, 8) : ''; } },
 
     // ---- usage ----
     { id: 'rl5', group: 'Usage', label: '5h limit + reset', hint: 'Subscription only, after the first response', heat: true,
       pct: function (p) { return get(p, 'rate_limits.five_hour.used_percentage'); },
-      preview: function (p, o) {
+      icon: '5h ↻',
+      preview: function (p, o, cell) {
         var r = get(p, 'rate_limits.five_hour'); if (!r) return '';
         var cd = countdown(r.resets_at, p._now);
-        return '5h ' + pct(r.used_percentage) + (cd ? ' ' + ico(o, '↻', 'in') + ' ' + cd : '');
+        return af(cell, '5h ') + pct(r.used_percentage) +
+               (cd ? ' ' + af(cell, ico(o, '↻', 'in') + ' ') + cd : '');
       } },
     { id: 'rl7', group: 'Usage', label: '7d limit + reset', hint: 'The weekly window', heat: true,
       pct: function (p) { return get(p, 'rate_limits.seven_day.used_percentage'); },
-      preview: function (p, o) {
+      icon: '7d ↻',
+      preview: function (p, o, cell) {
         var r = get(p, 'rate_limits.seven_day'); if (!r) return '';
         var cd = countdown(r.resets_at, p._now);
-        return '7d ' + pct(r.used_percentage) + (cd ? ' ' + ico(o, '↻', 'in') + ' ' + cd : '');
+        return af(cell, '7d ') + pct(r.used_percentage) +
+               (cd ? ' ' + af(cell, ico(o, '↻', 'in') + ' ') + cd : '');
       } },
     { id: 'rl5_bare', group: 'Usage', label: '5h limit', hint: 'Percentage only, no countdown', heat: true,
       pct: function (p) { return get(p, 'rate_limits.five_hour.used_percentage'); },
-      preview: function (p) {
-        var r = get(p, 'rate_limits.five_hour'); return r ? '5h ' + pct(r.used_percentage) : '';
+      icon: '5h',
+      preview: function (p, o, cell) {
+        var r = get(p, 'rate_limits.five_hour'); return r ? af(cell, '5h ') + pct(r.used_percentage) : '';
       } },
     { id: 'rl7_bare', group: 'Usage', label: '7d limit', hint: 'Percentage only, no countdown', heat: true,
       pct: function (p) { return get(p, 'rate_limits.seven_day.used_percentage'); },
-      preview: function (p) {
-        var r = get(p, 'rate_limits.seven_day'); return r ? '7d ' + pct(r.used_percentage) : '';
+      icon: '7d',
+      preview: function (p, o, cell) {
+        var r = get(p, 'rate_limits.seven_day'); return r ? af(cell, '7d ') + pct(r.used_percentage) : '';
       } },
     { id: 'cost', group: 'Usage', label: 'session cost', hint: 'Estimated, computed client-side; resets to $0 on /clear',
       preview: function (p) {
@@ -216,7 +237,8 @@
     { id: 'duration', group: 'Usage', label: 'session duration', hint: 'Wall-clock time since the session started',
       preview: function (p) { return dur(get(p, 'cost.total_duration_ms')); } },
     { id: 'api_duration', group: 'Usage', label: 'API time', hint: 'Time spent waiting on API responses',
-      preview: function (p) { var v = dur(get(p, 'cost.total_api_duration_ms')); return v ? 'api ' + v : ''; } },
+      icon: 'api',
+      preview: function (p, o, cell) { var v = dur(get(p, 'cost.total_api_duration_ms')); return v ? af(cell, 'api ') + v : ''; } },
     { id: 'lines', group: 'Usage', label: 'lines changed', hint: '+added/-removed this session',
       preview: function (p) {
         var a = get(p, 'cost.total_lines_added'), r = get(p, 'cost.total_lines_removed');

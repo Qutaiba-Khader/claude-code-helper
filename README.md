@@ -93,6 +93,9 @@ CONFIG='{"v":1,"sep":" | ","sepColor":"grey","rule":true,"align":true,"icons":tr
 
 Requirements: `jq` on `PATH`, plus `git` if you use the branch field.
 
+A cell can carry `"i": false` to drop its built-in label — `out_tokens` normally renders
+`↑ 1k`, and with the label off it is just `1k`, so you can pair it with a symbol of your own.
+
 The `st` block is the only part the script ignores — `padding`, `refreshInterval` and
 `hideVimModeIndicator` belong to `settings.json`, and the installer writes them there.
 
