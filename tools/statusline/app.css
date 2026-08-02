@@ -2,7 +2,7 @@
    Three numbered stages: arrange, refine, install. The terminal window is the one
    loud element; everything around it stays quiet. */
 
-.builder { padding-bottom: 24px; }
+.builder { padding-bottom: 24px; max-width: 1460px; }
 
 .page-head {
   display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
@@ -26,7 +26,7 @@
 /* ══════════ workbench: field rail + stage ══════════ */
 .workbench {
   display: grid; gap: 14px; align-content: start;
-  grid-template-columns: 200px minmax(320px, 1fr) minmax(430px, 620px);
+  grid-template-columns: 200px minmax(340px, 1fr) minmax(430px, 560px);
   align-items: start;
 }
 @media (max-width: 1320px) {
@@ -221,6 +221,7 @@
 }
 .chip.is-dragging { opacity: .3; }
 .chip .grip { color: var(--fg-3); font-size: .8125rem; line-height: 1; }
+.chip .name { white-space: nowrap; }
 .chip .swatch { width: 8px; height: 8px; border-radius: 2px; }
 .chip .x {
   border: 0; background: none; color: var(--fg-3); cursor: pointer;
