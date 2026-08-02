@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"ctx_bar","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"tokens","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"}],[{"f":"rule","c":"grey"}]]}'
+CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"bar_tokens","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"}],[{"f":"rule","c":"grey"}]]}'
 
 input=$(cat)
 
@@ -242,6 +242,15 @@ render() {
         if [ $i -lt $filled ]; then bar+=$(ico '▰' '#'); else bar+=$(ico '▱' '.'); fi
       done
       val "$bar" ;;
+    bar_tokens)
+      [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null || return
+      local n2=${p_ctxpct%%.*} i2 filled2 bar2=""
+      case "$n2" in ''|*[!0-9]*) n2=$(( p_in * 100 / p_ctx )) ;; esac
+      filled2=$(( n2 * 10 / 100 ))
+      for ((i2=0;i2<10;i2++)); do
+        if [ $i2 -lt $filled2 ]; then bar2+=$(ico '▰' '#'); else bar2+=$(ico '▱' '.'); fi
+      done
+      printf '%s %s/%s (%s)' "$(val "$bar2")" "$(tok "$p_in")" "$(tok "$p_ctx")" "$(val "${n2}%")" ;;
     out_tokens) [ "${p_out:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff "$(ico '↑' 'out') ")" "$(tok "$p_out")" ;;
     cache_read)  [ "${p_cread:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cache ')" "$(tok "$p_cread")" ;;
     cache_write) [ "${p_cwrite:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cw ')" "$(tok "$p_cwrite")" ;;
@@ -285,7 +294,7 @@ heatval() {
   case "$1" in
     rl5|rl5_bare) printf '%s' "$p_rl5" ;;
     rl7|rl7_bare) printf '%s' "$p_rl7" ;;
-    ctx_pct|ctx_bar|tokens|tokens_plain|tokens_pct) printf '%s' "$p_ctxpct" ;;
+    ctx_pct|ctx_bar|tokens|tokens_plain|tokens_pct|bar_tokens) printf '%s' "$p_ctxpct" ;;
     ctx_left) printf '%s' "$p_ctxleft" ;;
   esac
 }
@@ -378,18 +387,20 @@ SEPW=1
 # emit <cell> honouring the value markers. $2 is the format for the value,
 # $3 the format for everything around it.
 emit() {
-  local t=$1 vfmt=$2 base=$3 pre mid post
-  case "$t" in
-    *$'\002'*)
-      pre=${t%%$'\002'*}
-      mid=${t#*$'\002'}; mid=${mid%%$'\003'*}
-      post=${t#*$'\003'}
-      [ -n "$pre" ]  && printf '%s%s%s' "$base" "$pre" "$RST"
-      printf '%s%s%s' "$vfmt" "$mid" "$RST"
-      [ -n "$post" ] && printf '%s%s%s' "$base" "$post" "$RST"
-      ;;
-    *) printf '%s%s%s' "$vfmt" "$t" "$RST" ;;
-  esac
+  local t=$1 vfmt=$2 base=$3 pre mid
+  if [[ $t != *$'\002'* ]]; then
+    printf '%s%s%s' "$vfmt" "$t" "$RST"
+    return
+  fi
+  while [[ $t == *$'\002'* ]]; do
+    pre=${t%%$'\002'*}
+    t=${t#*$'\002'}
+    mid=${t%%$'\003'*}
+    t=${t#*$'\003'}
+    [ -n "$pre" ] && printf '%s%s%s' "$base" "$pre" "$RST"
+    printf '%s%s%s' "$vfmt" "$mid" "$RST"
+  done
+  [ -n "$t" ] && printf '%s%s%s' "$base" "$t" "$RST"
 }
 
 wide=0

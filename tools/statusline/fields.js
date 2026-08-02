@@ -177,6 +177,20 @@
         for (var i = 0; i < 10; i++) s += (i < filled) ? ico(o, '▰', '#') : ico(o, '▱', '.');
         return val(s);
       } },
+    { id: 'bar_tokens', group: 'Model', label: 'bar + tokens used', heat: true,
+      hint: 'The context bar with the count on the end, e.g. ▰▰▰▱▱▱▱▱▱▱ 41k/1000k (4%)',
+      pct: function (p) { return get(p, 'context_window.used_percentage'); },
+      preview: function (p, o) {
+        var c = get(p, 'context_window');
+        if (!c || !c.context_window_size) return '';
+        var n = c.used_percentage;
+        if (n === undefined || n === null) n = c.total_input_tokens * 100 / c.context_window_size;
+        n = Math.floor(n);
+        var filled = Math.floor(n * 10 / 100), bar = '';
+        for (var i = 0; i < 10; i++) bar += (i < filled) ? ico(o, '▰', '#') : ico(o, '▱', '.');
+        return val(bar) + ' ' + tok(c.total_input_tokens) + '/' + tok(c.context_window_size) +
+               ' (' + val(n + '%') + ')';
+      } },
     { id: 'out_tokens', group: 'Model', label: 'output tokens', hint: 'From the most recent response',
       icon: '↑',
       preview: function (p, o, cell) {

@@ -203,7 +203,7 @@
         v: 2, align: true, icons: true,
         rows: [
           [{ f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }],
-          [BYVALUE('ctx_bar'), BAR, BYVALUE('tokens'), BAR, { f: 'effort', c: 'dim' }],
+          [BYVALUE('bar_tokens'), BAR, { f: 'effort', c: 'dim' }],
           [BYVALUE('rl5'), BAR, BYVALUE('rl7')],
           [RULE()]
         ]
@@ -752,7 +752,7 @@
     if (f.id === 'ctx_left') return (100 - Math.floor(pctv)) + '%';
     if (f.id === 'rl5' || f.id === 'rl5_bare') return Math.floor(pctv) + '%';
     if (f.id === 'rl7' || f.id === 'rl7_bare') return Math.floor(pctv) + '%';
-    if (f.id === 'ctx_bar') {
+    if (f.id === 'ctx_bar' || f.id === 'bar_tokens') {
       var filled = Math.floor(pctv / 10), out = '';
       for (var i = 0; i < 10; i++) out += (i < filled) ? (state.icons ? '▰' : '#') : (state.icons ? '▱' : '.');
       return out;
@@ -1504,20 +1504,24 @@
     // the cell keeps its own.
     if ((colour === 'ramp' || colour === 'heat') && String(text).indexOf(VS) >= 0) {
       var wrap = document.createElement('span');
-      var pre = text.slice(0, text.indexOf(VS));
-      var mid = text.slice(text.indexOf(VS) + 1, text.indexOf(VE));
-      var post = text.slice(text.indexOf(VE) + 1);
       var f0 = FIELD[fieldId];
       var vHex = colour === 'heat'
         ? heatColour(f0 && f0.pct ? f0.pct(p) : 0)
         : rampColour(cell || {}, f0 && f0.pct ? f0.pct(p) : 0);
       var baseName = (cell && cell.b) || 'default';
-      if (pre) wrap.appendChild(plain(pre, baseName));
-      var v = document.createElement('span');
-      v.textContent = mid;
-      v.style.color = vHex;
-      wrap.appendChild(v);
-      if (post) wrap.appendChild(plain(post, baseName));
+      var rest = String(text);
+      while (rest.indexOf(VS) >= 0) {
+        var pre = rest.slice(0, rest.indexOf(VS));
+        rest = rest.slice(rest.indexOf(VS) + 1);
+        var mid = rest.slice(0, rest.indexOf(VE));
+        rest = rest.slice(rest.indexOf(VE) + 1);
+        if (pre) wrap.appendChild(plain(pre, baseName));
+        var v = document.createElement('span');
+        v.textContent = mid;
+        v.style.color = vHex;
+        wrap.appendChild(v);
+      }
+      if (rest) wrap.appendChild(plain(rest, baseName));
       return wrap;
     }
 
