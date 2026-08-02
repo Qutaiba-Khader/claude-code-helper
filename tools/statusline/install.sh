@@ -62,9 +62,22 @@ cp "$SETTINGS" "$SETTINGS.bak.$(date +%Y%m%d_%H%M%S)"
 
 jq -e . "$SETTINGS" >/dev/null 2>&1 || die "$SETTINGS is not valid JSON — fix it first, nothing was changed"
 
+# padding / refreshInterval / hideVimModeIndicator ride along in the config's
+# `st` block. The script ignores them; they belong to settings.json.
+PADDING=$(printf '%s' "$CONFIG" | jq -r '.st.padding // 0')
+REFRESH=$(printf '%s' "$CONFIG" | jq -r '.st.refresh // 0')
+HIDEVIM=$(printf '%s' "$CONFIG" | jq -r 'if .st.hideVim then "true" else "false" end')
+
 tmp=$(mktemp)
 jq --arg cmd "bash $SCRIPT" \
-   '.statusLine = {type: "command", command: $cmd}' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+   --argjson padding "$PADDING" \
+   --argjson refresh "$REFRESH" \
+   --argjson hidevim "$HIDEVIM" '
+     .statusLine = ({type: "command", command: $cmd}
+       + (if $padding > 0 then {padding: $padding} else {} end)
+       + (if $refresh > 0 then {refreshInterval: $refresh} else {} end)
+       + (if $hidevim   then {hideVimModeIndicator: true} else {} end))
+   ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
 info "updated $SETTINGS"
 
 # --- show what it looks like ----------------------------------------------

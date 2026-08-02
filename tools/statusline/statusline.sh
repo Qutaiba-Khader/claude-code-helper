@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":1,"sep":" | ","sepColor":"grey","rule":true,"align":true,"icons":true,"rows":[[{"f":"userhost","c":"bold-green"},{"f":"cwd","c":"bold-blue"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"model_ctx","c":"bold-cyan"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"heat"},{"f":"rl7","c":"heat"}]]}'
+CONFIG='{"v":1,"sep":" | ","sepColor":"grey","rule":true,"align":true,"icons":true,"divider":true,"rows":[[{"f":"userhost","c":"bold-green"},{"f":"cwd","c":"bold-blue"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"model_ctx","c":"bold-cyan"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"heat"},{"f":"rl7","c":"heat"}]]}'
 
 input=$(cat)
 
@@ -17,8 +17,9 @@ input=$(cat)
 IFS=$'\037' read -r \
   p_cwd p_pdir p_model p_model_id p_in p_out p_ctx p_ctxpct p_ctxleft \
   p_rl5 p_rl5r p_rl7 p_rl7r p_cost p_effort p_think p_fast p_style \
-  p_version p_session p_vim p_agent p_owner p_repo p_prnum p_prstate \
-  p_wt p_wtbranch <<<"$(
+  p_version p_session p_vim p_agent p_owner p_repo p_prnum p_prstate p_prurl \
+  p_wt p_wtbranch p_gwt p_dur p_apidur p_added p_removed p_over200k \
+  p_cread p_cwrite p_adddirs p_sid <<<"$(
   printf '%s' "$input" | jq -j '
     def s: if . == null then "" else tostring end;
     [ (.workspace.current_dir // .cwd // ""),
@@ -47,19 +48,31 @@ IFS=$'\037' read -r \
       (.workspace.repo.name | s),
       (.pr.number | s),
       (.pr.review_state | s),
+      (.pr.url | s),
       (.worktree.name | s),
-      (.worktree.branch | s)
+      (.worktree.branch | s),
+      (.workspace.git_worktree | s),
+      (.cost.total_duration_ms | s),
+      (.cost.total_api_duration_ms | s),
+      (.cost.total_lines_added | s),
+      (.cost.total_lines_removed | s),
+      (.exceeds_200k_tokens | s),
+      (.context_window.current_usage.cache_read_input_tokens | s),
+      (.context_window.current_usage.cache_creation_input_tokens | s),
+      (.workspace.added_dirs // [] | length | s),
+      (.session_id | s)
     ] | join("\u001f")' 2>/dev/null
 )"
 [ -n "$p_cwd" ] || p_cwd="$PWD"
 
 # --- config -> shell vars --------------------------------------------------
-IFS=$'\037' read -r cfg_sep cfg_sepcol cfg_rule cfg_align cfg_icons <<<"$(
+IFS=$'\037' read -r cfg_sep cfg_sepcol cfg_rule cfg_align cfg_icons cfg_fit cfg_links cfg_div <<<"$(
   printf '%s' "$CONFIG" | jq -j '
     def b(d): if . == null then d else . end | tostring;
     [ (.sep // " | "), (.sepColor // "grey"),
       (.rule | b(false)), (.align | b(true)),
-      (.icons | b(true)) ] | join("\u001f")' 2>/dev/null
+      (.icons | b(true)), (.fit | b(false)), (.links | b(false)),
+      (.divider | b(true)) ] | join("\u001f")' 2>/dev/null
 )"
 
 RST=$'\033[0m'
@@ -112,6 +125,24 @@ countdown() {  # unix epoch seconds, or an ISO-8601 timestamp
   else                             printf '%dm' $(( left / 60 )); fi
 }
 
+dur() {  # milliseconds -> 1h04m / 12m / 45s
+  local ms=${1:-0} sec
+  case "$ms" in ''|*[!0-9]*) return ;; esac
+  sec=$(( ms / 1000 ))
+  if   [ "$sec" -ge 3600 ]; then printf '%dh%02dm' $(( sec / 3600 )) $(( sec % 3600 / 60 ))
+  elif [ "$sec" -ge 60 ];   then printf '%dm' $(( sec / 60 ))
+  else                           printf '%ds' "$sec"; fi
+}
+
+# OSC 8 hyperlink, when links are enabled and the terminal supports them
+link() {  # link <url> <text>
+  if [ "$cfg_links" = "true" ] && [ -n "$1" ]; then
+    printf '\033]8;;%s\033\\%s\033]8;;\033\\' "$1" "$2"
+  else
+    printf '%s' "$2"
+  fi
+}
+
 # home directory as ~
 tilde() {
   local d=$1
@@ -144,8 +175,10 @@ render() {
         printf '%s %s' "$(ico '⎇' 'git:')" "$p_wtbranch"
       fi ;;
     repo)      [ -n "$p_repo" ] && printf '%s/%s' "$p_owner" "$p_repo" ;;
-    pr)        [ -n "$p_prnum" ] && printf 'PR #%s%s' "$p_prnum" "${p_prstate:+ ($p_prstate)}" ;;
+    pr)        [ -n "$p_prnum" ] && link "$p_prurl" "PR #$p_prnum${p_prstate:+ ($p_prstate)}" ;;
     worktree)  [ -n "$p_wt" ] && printf '%s %s' "$(ico '⑂' 'wt:')" "$p_wt" ;;
+    git_worktree) [ -n "$p_gwt" ] && printf '%s %s' "$(ico '⑂' 'wt:')" "$p_gwt" ;;
+    added_dirs)   [ "${p_adddirs:-0}" -gt 0 ] 2>/dev/null && printf '+%s dir' "$p_adddirs" ;;
     model)     printf '%s' "$p_model" ;;
     model_ctx)
       [ -n "$p_model" ] || return
@@ -171,6 +204,9 @@ render() {
       done
       printf '%s' "$bar" ;;
     out_tokens) [ "${p_out:-0}" -gt 0 ] 2>/dev/null && printf '%s %s' "$(ico '↑' 'out')" "$(tok "$p_out")" ;;
+    cache_read)  [ "${p_cread:-0}" -gt 0 ] 2>/dev/null && printf 'cache %s' "$(tok "$p_cread")" ;;
+    cache_write) [ "${p_cwrite:-0}" -gt 0 ] 2>/dev/null && printf 'cw %s' "$(tok "$p_cwrite")" ;;
+    over200k)    [ "$p_over200k" = "true" ] && ico '⚠ 200k+' '!200k+' ;;
     effort)    printf '%s' "$p_effort" ;;
     thinking)  [ "$p_think" = "false" ] && printf 'no-think' ;;
     fast)      [ "$p_fast" = "true" ] && ico '⚡' 'fast' ;;
@@ -192,6 +228,14 @@ render() {
     rl5_bare) [ -n "$p_rl5" ] && printf '5h %s' "$(pct "$p_rl5")" ;;
     rl7_bare) [ -n "$p_rl7" ] && printf '7d %s' "$(pct "$p_rl7")" ;;
     cost)     [ -n "$p_cost" ] && printf '$%.2f' "$p_cost" 2>/dev/null ;;
+    duration)     dur "$p_dur" ;;
+    api_duration) v=$(dur "$p_apidur"); [ -n "$v" ] && printf 'api %s' "$v" ;;
+    lines)
+      [ -n "$p_added$p_removed" ] || return
+      printf '+%s/-%s' "${p_added:-0}" "${p_removed:-0}" ;;
+    lines_added)   [ -n "$p_added" ]   && printf '+%s' "$p_added" ;;
+    lines_removed) [ -n "$p_removed" ] && printf '-%s' "$p_removed" ;;
+    session_id)   [ -n "$p_sid" ] && printf '%s' "${p_sid:0:8}" ;;
     time)     date +%H:%M ;;
     date)     date +%Y-%m-%d ;;
   esac
@@ -207,6 +251,22 @@ heatval() {
   esac
 }
 
+# Length of a cell as the terminal sees it: escape sequences take no columns.
+vislen() {
+  local t=$1 out=""
+  while [[ $t == *$'\033'* ]]; do
+    out+=${t%%$'\033'*}
+    t=${t#*$'\033'}
+    case $t in
+      '['*)    t=${t#*m} ;;                    # CSI ... m
+      ']8;;'*) t=${t#*$'\033\\'} ;;            # OSC 8 ... ST
+      *)       t=${t:1} ;;
+    esac
+  done
+  out+=$t
+  printf '%s' "${#out}"
+}
+
 # --- build the grid --------------------------------------------------------
 # One line per cell: row \x1f field \x1f colour \x1f custom-text
 mapfile -t CELLS < <(printf '%s' "$CONFIG" | jq -r '
@@ -214,7 +274,7 @@ mapfile -t CELLS < <(printf '%s' "$CONFIG" | jq -r '
   [ ($r.key|tostring), (.value.f // ""), (.value.c // ""), (.value.t // "") ]
   | join("\u001f")' 2>/dev/null)
 
-declare -A TXT FMT
+declare -A TXT FMT LEN
 declare -a COUNT
 nrows=0; ncols=0
 for line in "${CELLS[@]}"; do
@@ -224,6 +284,7 @@ for line in "${CELLS[@]}"; do
   idx=${COUNT[$r]:-0}; COUNT[$r]=$(( idx + 1 ))
   txt=$(render "$f" "$t")
   TXT[$r,$idx]=$txt
+  LEN[$r,$idx]=$(vislen "$txt")
   if [ "$c" = "heat" ]; then FMT[$r,$idx]=$(heat "$(heatval "$f")")
   else FMT[$r,$idx]=$(colour "$c"); fi
   [ $(( r + 1 )) -gt $nrows ] && nrows=$(( r + 1 ))
@@ -243,14 +304,19 @@ for ((c=0; c<ncols; c++)); do
   W[$c]=0
   for ((r=0; r<nrows; r++)); do
     [ "${LAST[$r]}" -ge 0 ] || continue
-    v=${TXT[$r,$c]}
-    [ ${#v} -gt ${W[$c]} ] && W[$c]=${#v}
+    v=${LEN[$r,$c]:-0}
+    [ "$v" -gt ${W[$c]} ] && W[$c]=$v
   done
 done
 [ "$cfg_align" = "true" ] || for ((c=0; c<ncols; c++)); do W[$c]=0; done
 
 SEPFMT=$(colour "$cfg_sepcol")
-SEP="${SEPFMT}${cfg_sep}${RST}"
+if [ "$cfg_div" = "true" ]; then
+  SEP="${SEPFMT}${cfg_sep}${RST}"
+else
+  # dividers off: keep the spacing, drop the mark
+  SEP=$(printf '%*s' "${#cfg_sep}" '')
+fi
 
 first=1
 for ((r=0; r<nrows; r++)); do
@@ -260,9 +326,10 @@ for ((r=0; r<nrows; r++)); do
   for ((c=0; c<=${LAST[$r]}; c++)); do
     [ $c -gt 0 ] && printf '%s' "$SEP"
     t=${TXT[$r,$c]}
+    tl=${LEN[$r,$c]:-0}
     [ -n "$t" ] && printf '%s%s%s' "${FMT[$r,$c]}" "$t" "$RST"
-    if [ $c -lt "${LAST[$r]}" ] && [ ${W[$c]} -gt ${#t} ]; then
-      printf '%*s' $(( W[$c] - ${#t} )) ''
+    if [ $c -lt "${LAST[$r]}" ] && [ ${W[$c]} -gt "$tl" ]; then
+      printf '%*s' $(( W[$c] - tl )) ''
     fi
   done
 done
@@ -274,12 +341,18 @@ if [ "$cfg_rule" = "true" ] && [ $first = 0 ]; then
     [ "${LAST[$r]}" -ge 0 ] || continue
     row_w=0
     for ((c=0; c<=${LAST[$r]}; c++)); do
-      cw=${W[$c]}; [ ${#TXT[$r,$c]} -gt $cw ] && cw=${#TXT[$r,$c]}
+      cw=${W[$c]}; [ "${LEN[$r,$c]:-0}" -gt $cw ] && cw=${LEN[$r,$c]}
       row_w=$(( row_w + cw ))
       [ $c -gt 0 ] && row_w=$(( row_w + ${#cfg_sep} ))
     done
     [ $row_w -gt $wide ] && wide=$row_w
   done
+  # `tput cols` cannot work here: Claude Code captures stdout rather than
+  # attaching a tty. It exports COLUMNS/LINES instead (v2.1.153+).
+  if [ "$cfg_fit" = "true" ] && [ -n "${COLUMNS:-}" ] && [ "${COLUMNS:-0}" -gt 0 ] 2>/dev/null; then
+    wide=$(( COLUMNS - 2 ))
+    [ "$wide" -lt 4 ] && wide=4
+  fi
   ch=$(ico '─' '-')
   line=""
   for ((i=0; i<wide; i++)); do line+=$ch; done

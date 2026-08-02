@@ -114,12 +114,14 @@
     return n >= 80 ? s.n[1] : n >= 50 ? s.n[3] : s.n[2];
   }
   function applyLook() {
-    var s = scheme(), t = $('#term');
+    var s = scheme(), t = document.querySelector('.termwin') || $('#term');
     t.style.setProperty('--term-bg', s.bg);
     t.style.setProperty('--term-fg', s.fg);
     t.style.setProperty('--term-caret', s.n[2]);
     t.style.setProperty('--term-font', (FONTS[look.font] || FONTS.system).stack);
     t.style.setProperty('--term-size', look.size + 'px');
+    var body = document.querySelector('.termwin-body');
+    if (body) body.style.background = s.bg;
   }
 
   // ---------------------------------------------------------------- presets
@@ -257,7 +259,13 @@
   };
 
   // ------------------------------------------------------------------- state
-  var state = clone(PRESETS.grid.cfg);
+  var DEFAULTS = {
+    v: 1, sep: ' | ', sepColor: 'grey', rule: true, align: true, icons: true,
+    fit: false, links: false, divider: true,
+    // settings.json options — the script ignores these, the installer applies them
+    st: { padding: 0, refresh: 0, hideVim: false }
+  };
+  var state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
   var selected = null;      // {r, c}
   var template = null;      // statusline.sh source, fetched once
   var tab = 'prompt';
@@ -283,6 +291,12 @@
     return JSON.stringify({
       v: 1, sep: state.sep, sepColor: state.sepColor,
       rule: !!state.rule, align: !!state.align, icons: !!state.icons,
+      fit: !!state.fit, links: !!state.links, divider: !!state.divider,
+      st: {
+        padding: Number(state.st.padding) || 0,
+        refresh: Number(state.st.refresh) || 0,
+        hideVim: !!state.st.hideVim
+      },
       rows: state.rows.map(function (row) {
         return row.map(function (cell) {
           var o = { f: cell.f, c: cell.c || 'default' };
@@ -324,7 +338,8 @@
         cfg.rows = cfg.rows.map(function (r) {
           return (Array.isArray(r) ? r : []).filter(function (c) { return c && FIELD[c.f]; });
         });
-        state = Object.assign({ v: 1, sep: ' | ', sepColor: 'grey', rule: true, align: true, icons: true }, cfg);
+        state = Object.assign(clone(DEFAULTS), cfg);
+        state.st = Object.assign(clone(DEFAULTS.st), cfg.st || {});
       }
     } catch (e) { /* keep the default */ }
   }
@@ -441,6 +456,7 @@
       : swatchHex(cell.c || 'default');
 
     var name = document.createElement('span');
+    name.className = 'name';
     name.textContent = cell.f === 'text' ? (cell.t ? '"' + cell.t + '"' : 'text') : f.label;
 
     var x = document.createElement('button');
@@ -701,6 +717,11 @@
   function renderPreview() {
     var p = currentSample();
     var term = $('#term');
+    var title = $('#termTitle');
+    if (title) {
+      var d = (p.workspace && p.workspace.current_dir) || p.cwd || '';
+      title.textContent = 'claude — ' + (d.split('/').pop() || d);
+    }
     term.textContent = '';
 
     // build the text grid exactly the way statusline.sh does
@@ -729,7 +750,12 @@
       var frag = document.createDocumentFragment();
       var width = 0;
       for (var c = 0; c <= last[r]; c++) {
-        if (c > 0) { frag.appendChild(span(state.sep, state.sepColor, p)); width += state.sep.length; }
+        if (c > 0) {
+          frag.appendChild(state.divider
+            ? span(state.sep, state.sepColor, p)
+            : document.createTextNode(' '.repeat(state.sep.length)));
+          width += state.sep.length;
+        }
         var item = row[c] || { text: '', cell: { c: 'default' } };
         if (item.text) frag.appendChild(span(item.text, item.cell.c, p, item.cell.f));
         width += item.text.length;
@@ -757,6 +783,7 @@
 
     if (state.rule) {
       var wide = lines.reduce(function (m, l) { return Math.max(m, l.width); }, 0);
+      if (state.fit) wide = Math.max(wide, termCols());
       term.appendChild(document.createTextNode('\n'));
       term.appendChild(span((state.icons ? '─' : '-').repeat(wide), state.sepColor, p));
     }
@@ -768,9 +795,26 @@
     warn();
   }
 
+  // Roughly how many columns the preview box is showing, for the `fit` option.
+  function termCols() {
+    var t = $('#term');
+    var probe = document.createElement('span');
+    probe.textContent = '0'.repeat(100);
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+    t.appendChild(probe);
+    var w = probe.getBoundingClientRect().width / 100;
+    probe.remove();
+    var inner = t.clientWidth - 32;
+    return w > 0 ? Math.max(20, Math.floor(inner / w)) : 80;
+  }
+
   function span(text, colour, p, fieldId) {
     var s = document.createElement('span');
     s.textContent = text;
+    if (state.links && (fieldId === 'pr')) {
+      s.style.textDecoration = 'underline';
+      s.title = 'rendered as a clickable OSC 8 link';
+    }
     colour = colour || 'default';
     if (colour === 'heat') {
       var f = FIELD[fieldId];
@@ -785,23 +829,74 @@
   }
 
   function warn() {
+    var host = $('#warn');
+    host.textContent = '';
     var msgs = [];
-    var used = {};
-    state.rows.forEach(function (r) { r.forEach(function (c) { used[c.f] = (used[c.f] || 0) + 1; }); });
-    if (used.rl5 || used.rl7 || used.rl5_bare || used.rl7_bare) {
-      msgs.push('Rate-limit fields only appear on a Claude subscription, after the first response of a session.');
+
+    if (!state.rows.some(function (r) { return r.length; })) {
+      msgs.push(['The layout is empty.', true]);
+    }
+    if (usesField('rl5') || usesField('rl7') || usesField('rl5_bare') || usesField('rl7_bare')) {
+      msgs.push(['Rate-limit fields need a Claude subscription and only appear after the first response of a session.', false]);
+    }
+    if (usesTimeField() && !state.st.refresh) {
+      msgs.push(['This layout has time-based fields but no refresh interval — clocks and countdowns will sit still between messages. Set Refresh to 30–60s.', true]);
+    }
+    if (usesField('vim') && !state.st.hideVim) {
+      msgs.push(['You are drawing vim.mode yourself — tick "Hide built-in vim indicator" so it is not shown twice.', true]);
+    }
+    if (state.links && !usesField('pr')) {
+      msgs.push(['Clickable links only affect the PR field right now, and need a terminal with OSC 8 support (iTerm2, Kitty, WezTerm).', false]);
     }
     if (state.icons) {
-      msgs.push('Unicode icons are on — if your terminal draws them double-width, turn them off.');
+      msgs.push(['Unicode icons are on. If your terminal draws them double-width, turn them off for ASCII.', false]);
     }
-    if (!state.rows.some(function (r) { return r.length; })) msgs.push('The layout is empty.');
-    $('#warn').textContent = msgs.join(' ');
+    if (state.rows.length > 3) {
+      msgs.push(['More than three rows takes a lot of terminal height, and multi-line output with escape codes is more prone to render glitches.', false]);
+    }
+    if (usesField('branch')) {
+      msgs.push(['The branch field shells out to git on every update. It uses --no-optional-locks, but on a very large repo consider caching it.', false]);
+    }
+
+    if (!msgs.length) return;
+    var ul = document.createElement('ul');
+    ul.className = 'warn-list';
+    msgs.forEach(function (m) {
+      var li = document.createElement('li');
+      li.textContent = m[0];
+      if (m[1]) li.className = 'hot';
+      ul.appendChild(li);
+    });
+    host.appendChild(ul);
   }
 
   // ----------------------------------------------------------------- output
   function baseURL() {
     var u = location.origin + location.pathname;
     return u.replace(/tools\/statusline\/.*$/, '');
+  }
+
+  // The statusLine block exactly as it should appear in settings.json.
+  function settingsBlock(cmd) {
+    var o = { type: 'command', command: cmd };
+    if (state.st.padding) o.padding = Number(state.st.padding);
+    if (state.st.refresh) o.refreshInterval = Number(state.st.refresh);
+    if (state.st.hideVim) o.hideVimModeIndicator = true;
+    return JSON.stringify({ statusLine: o }, null, 2)
+      .split('\n').map(function (l) { return '   ' + l; }).join('\n').trim();
+  }
+
+  // Fields whose value changes on the clock rather than on a session event.
+  var TIME_FIELDS = ['time', 'date', 'duration', 'api_duration', 'rl5', 'rl7'];
+  function usesTimeField() {
+    return state.rows.some(function (r) {
+      return r.some(function (c) { return TIME_FIELDS.indexOf(c.f) >= 0; });
+    });
+  }
+  function usesField(id) {
+    return state.rows.some(function (r) {
+      return r.some(function (c) { return c.f === id; });
+    });
   }
 
   function buildScript() {
@@ -817,12 +912,9 @@
       '1. Write the script at the end of this message verbatim to ~/.claude/statusline-command.sh',
       '   and chmod +x it. It needs `jq` on PATH (and `git`, for the branch field).',
       '',
-      '2. Add this to ~/.claude/settings.json, preserving every existing setting:',
+      '2. Merge this into ~/.claude/settings.json, preserving every existing setting:',
       '',
-      '   "statusLine": {',
-      '     "type": "command",',
-      '     "command": "bash ~/.claude/statusline-command.sh"',
-      '   }',
+      '   ' + settingsBlock('bash ~/.claude/statusline-command.sh'),
       '',
       '   If ~/.claude/settings.json is a symlink, edit the file it points at.',
       '   Use an absolute path if ~ is not expanded in your setup.',
@@ -834,13 +926,16 @@
       '     | bash ~/.claude/statusline-command.sh',
       '',
       'Notes, so you do not have to rediscover them:',
-      ' - Multi-line status lines are supported: the renderer splits on newlines and stacks the',
-      '   lines. A single-line status line is dimmed and truncated instead, so keep it multi-line.',
+      ' - Multi-line output is supported — each line becomes its own row in the status area.',
       ' - Font size cannot be set from a status line; that belongs to the terminal emulator.',
       ' - `workspace.repo` has host/owner/name but no branch — the branch has to come from git.',
-      ' - `rate_limits.*.resets_at` can be epoch seconds or ISO-8601; the script handles both.',
       ' - The script parses its jq output with IFS=$\'\\037\'. A whitespace IFS silently collapses',
       '   empty fields and shifts every later value into the wrong variable.',
+      ' - Claude Code debounces status line updates at 300ms and cancels a script that is still',
+      '   running when the next update fires, so keep it fast.',
+      ' - `tput cols` cannot see the terminal from inside the script; read $COLUMNS instead.',
+      ' - The status line needs the workspace trust dialog accepted, and is disabled entirely',
+      '   if `disableAllHooks` is true.',
       ' - The layout lives in the CONFIG line at the top. Rebuild it any time at',
       '   ' + baseURL() + 'tools/statusline/',
       '',
@@ -876,6 +971,12 @@
     state.align = $('#optAlign').checked;
     state.rule = $('#optRule').checked;
     state.icons = $('#optIcons').checked;
+    state.fit = $('#optFit').checked;
+    state.links = $('#optLinks').checked;
+    state.divider = $('#optDivider').checked;
+    state.st.padding = Math.max(0, Math.min(40, Number($('#padding').value) || 0));
+    state.st.refresh = Math.max(0, Math.min(3600, Number($('#refresh').value) || 0));
+    state.st.hideVim = $('#optHideVim').checked;
     save();
     renderRows();
     update();
@@ -887,6 +988,12 @@
     $('#optAlign').checked = !!state.align;
     $('#optRule').checked = !!state.rule;
     $('#optIcons').checked = !!state.icons;
+    $('#optFit').checked = !!state.fit;
+    $('#optLinks').checked = !!state.links;
+    $('#optDivider').checked = !!state.divider;
+    $('#padding').value = state.st.padding || 0;
+    $('#refresh').value = state.st.refresh || 0;
+    $('#optHideVim').checked = !!state.st.hideVim;
   }
 
   function init() {
@@ -907,7 +1014,7 @@
     });
     ps.addEventListener('change', function () {
       if (!ps.value) return;
-      state = clone(PRESETS[ps.value].cfg);
+      state = Object.assign(clone(DEFAULTS), clone(PRESETS[ps.value].cfg));
       selected = null;
       ps.value = '';
       writeOptions(); save(); renderRows(); update();
@@ -951,9 +1058,12 @@
 
     $('#filter').addEventListener('input', renderPalette);
     $('#sample').addEventListener('change', function () { renderRows(); update(); });
-    ['#sep', '#sepColor', '#optAlign', '#optRule', '#optIcons'].forEach(function (s) {
+    ['#sep', '#sepColor', '#optAlign', '#optRule', '#optIcons', '#optFit',
+     '#optLinks', '#optDivider', '#padding', '#refresh', '#optHideVim'].forEach(function (s) {
       $(s).addEventListener('change', readOptions);
     });
+    $('#padding').addEventListener('input', readOptions);
+    $('#refresh').addEventListener('input', readOptions);
     $('#sep').addEventListener('input', readOptions);
 
     $('#addRow').addEventListener('click', function () {
@@ -962,7 +1072,7 @@
     });
 
     $('#reset').addEventListener('click', function () {
-      state = clone(PRESETS.grid.cfg);
+      state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
       selected = null;
       writeOptions(); save(); renderRows(); update();
       window.toast('Reset to the default layout');

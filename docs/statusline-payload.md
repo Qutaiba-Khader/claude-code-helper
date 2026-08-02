@@ -20,6 +20,14 @@ sessions that happen not to have it.
     "display_name": "string"     // e.g. "Opus 5"
   },
 
+  "cost": {
+    "total_cost_usd": 0.01234,   // estimated, computed client-side; resets to $0 on /clear
+    "total_duration_ms": 45000,  // wall-clock time since the session started
+    "total_api_duration_ms": 2300,
+    "total_lines_added": 156,
+    "total_lines_removed": 23
+  },
+
   "workspace": {
     "current_dir": "string",     // current working directory
     "project_dir": "string",     // project root
@@ -86,7 +94,8 @@ a running git command for the index lock:
 git --no-optional-locks -C "$dir" rev-parse --abbrev-ref HEAD
 ```
 
-**`resets_at` is documented as epoch seconds but may arrive as ISO-8601.** Handle both:
+**`resets_at` is Unix epoch seconds.** The generated script also accepts ISO-8601 defensively, so
+it keeps working if that ever changes:
 
 ```bash
 if [[ $raw =~ ^[0-9]+$ ]]; then epoch=$raw; else epoch=$(date -d "$raw" +%s); fi
@@ -132,3 +141,74 @@ IFS=$'\037' read -r cwd model tokens <<<"$(
 
 Use `\x1f` (unit separator), **not** a tab. `read` treats whitespace as `IFS` specially: runs of
 it collapse, so a single empty field silently shifts every later value into the wrong variable.
+
+
+## settings.json options
+
+`statusLine` takes more than `type` and `command`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "padding": 2,
+    "refreshInterval": 30,
+    "hideVimModeIndicator": true
+  }
+}
+```
+
+| Key | Default | What it does |
+|---|---|---|
+| `type` | — | Always `"command"` |
+| `command` | — | A script path or an inline shell command. It runs in a shell, so `jq -r '…'` inline works. |
+| `padding` | `0` | Extra horizontal characters, on top of the interface's own spacing. Relative indentation, not absolute distance from the edge. |
+| `refreshInterval` | unset | Re-run every N seconds **in addition to** the event triggers. Minimum `1`. Needed for clocks and countdowns, and while the main session idles waiting on background subagents. |
+| `hideVimModeIndicator` | `false` | Suppresses the built-in `-- INSERT --` line. Set it when you render `vim.mode` yourself. |
+
+There is also a separate `subagentStatusLine` setting for subagent rows.
+
+## When it runs
+
+Once at session start (including on resume), then on each of:
+
+- a new assistant message
+- `/compact` finishing
+- a permission-mode change
+- a vim-mode toggle
+- the `refreshInterval` timer, if set
+
+Updates are debounced at 300ms. **If a new update fires while your script is still running, the
+in-flight run is cancelled** — so a slow script means a stale status line. Cache anything
+expensive; `git status` on a large repo is the usual culprit.
+
+## What the script can and cannot do
+
+**Can:** print multiple lines (each becomes a row), emit ANSI colours, emit OSC 8 hyperlinks
+(iTerm2, Kitty, WezTerm; `FORCE_HYPERLINK=1` to override detection elsewhere).
+
+**Cannot:** change the font, the font size, or where the status line sits. Those belong to the
+terminal emulator and to Claude Code's own layout.
+
+**Cannot read the terminal size the usual way.** Claude Code captures stdout instead of attaching
+a tty, so `tput cols` and language-level width detection see nothing. Read the `COLUMNS` and
+`LINES` environment variables instead — Claude Code sets them before running your script
+(v2.1.153+).
+
+## When it does not appear at all
+
+- The script is not executable, or writes to stderr instead of stdout.
+- A non-zero exit or empty output blanks the status line.
+- `disableAllHooks: true` disables the status line too.
+- The workspace trust dialog has not been accepted — `claude --debug` logs
+  `Status line command skipped: workspace trust not accepted`.
+- On Windows with Git Bash, backslashes in the `command` path get eaten as escapes. Use forward
+  slashes.
+
+## Rendering caveats
+
+- System notifications (MCP errors, auto-updates, the context-low warning) share the right-hand
+  side of the status line row and can truncate your output on a narrow terminal.
+- Multi-line output with escape codes is more prone to garbling than single-line plain text.
+- If escape sequences show up as literal `\e]8;;` text, use `printf '%b'` rather than `echo -e`.

@@ -8,9 +8,9 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▚</text></svg>">
 <link rel="stylesheet" href="assets/css/base.css">
 <style>
-  .hero { padding: 60px 0 38px; }
-  .hero h1 { font-size: clamp(1.9rem, 4.5vw, 2.8rem); margin-bottom: .3em; }
-  .hero p.lede { font-size: 1.0625rem; max-width: 62ch; margin-bottom: 1.4em; }
+  .hero { padding: 56px 0 34px; }
+  .hero h1 { font-size: clamp(1.8rem, 4.4vw, 2.7rem); margin-bottom: .35em; max-width: 20ch; }
+  .hero p.lede { font-size: 1rem; max-width: 60ch; margin-bottom: 1.5em; }
   .hero .cta { display: flex; flex-wrap: wrap; gap: 10px; }
 
   .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
@@ -24,9 +24,9 @@
   .tool.is-planned { opacity: .62; }
   .tool .top { display: flex; align-items: center; gap: 10px; }
   .tool .ico {
-    width: 34px; height: 34px; flex: none; display: grid; place-items: center;
-    border-radius: 9px; background: var(--bg-3); border: 1px solid var(--line);
-    font-size: 1.05rem; color: var(--accent);
+    width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+    border-radius: 4px; background: var(--bg-3); border: 1px solid var(--line);
+    font-size: 1rem; color: var(--accent);
   }
   .tool h3 { margin: 0; font-size: 1rem; }
   .tool p { margin: 0; font-size: .875rem; color: var(--fg-2); }
@@ -34,6 +34,7 @@
 
   .why { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 12px; }
   .why div h3 { color: var(--fg); }
+  .why div { border-left: 1px solid var(--line); padding-left: 14px; }
   .why div p { font-size: .875rem; margin: 0; }
   section { margin-top: 44px; }
   .repo-cta {
@@ -47,7 +48,7 @@
   .repo-url { margin-top: .5em !important; font-family: var(--mono); font-size: .875rem !important; }
   .repo-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
-  .section-head p { margin: 0; font-size: .875rem; }
+  .section-head p { margin: 0; font-family: var(--mono); font-size: .75rem; color: var(--fg-3); }
 </style>
 </head>
 <body>

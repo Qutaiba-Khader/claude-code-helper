@@ -18,7 +18,7 @@
       <a href="../../">All tools</a>
       <a href="../../docs/">Docs</a>
       <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
-      <button class="btn btn-ghost btn-sm" id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button>
+      <button class="btn btn-ghost btn-sm" id="theme" title="Toggle light and dark" aria-label="Toggle light and dark">◐</button>
     </nav>
   </div>
 </header>
@@ -26,116 +26,164 @@
 <main class="wrap builder">
 
   <div class="page-head">
-    <div>
+    <div class="page-head-text">
       <h1>Status line builder</h1>
-      <p>Drag fields into rows. The preview is what Claude Code will actually draw under your prompt.</p>
+      <p>Arrange the fields, watch the terminal, take the config away.</p>
     </div>
     <div class="page-head-actions">
       <select id="preset" aria-label="Load a preset">
-        <option value="">Load a preset…</option>
+        <option value="">Start from a preset…</option>
       </select>
       <button class="btn btn-sm" id="share">Copy share link</button>
       <button class="btn btn-sm" id="reset">Reset</button>
     </div>
   </div>
 
-  <!-- ---------- live preview ---------- -->
-  <section class="panel preview-panel">
-    <header>
-      Preview
-      <span class="spacer"></span>
-      <label class="mini">data
-        <select id="sample" aria-label="Sample data">
-          <option value="mid">mid-session</option>
-          <option value="fresh">fresh session</option>
-          <option value="limits">near the limits</option>
-          <option value="bare">no subscription data</option>
-        </select>
-      </label>
-      <label class="mini">theme
-        <select id="scheme" aria-label="Terminal colour scheme"></select>
-      </label>
-      <label class="mini">font
-        <select id="font" aria-label="Terminal font"></select>
-      </label>
-      <label class="mini">size
-        <input type="range" id="fontSize" min="10" max="20" step="1" value="13" aria-label="Terminal font size">
-      </label>
-    </header>
-    <div class="body">
-      <div class="term" id="term" aria-label="Status line preview"></div>
-      <p class="note" id="warn"></p>
-      <p class="note">
-        The script emits standard ANSI colour codes — the actual shade is decided by your
-        terminal's scheme, so this picker shows how your layout lands in each one.
-        Font and size are preview only; a status line cannot change either.
-      </p>
-    </div>
-  </section>
+  <!-- ══════════════ 1 · ARRANGE ══════════════ -->
+  <p class="eyebrow"><span class="n">01</span> Arrange</p>
 
-  <div class="cols">
+  <div class="workbench">
 
-    <!-- ---------- palette ---------- -->
-    <aside class="panel palette-panel">
-      <header>Fields</header>
-      <div class="body">
-        <input type="text" id="filter" placeholder="Filter fields…" aria-label="Filter fields">
-        <div id="palette"></div>
-        <p class="note">Drag a field into a row, or click it to append to the last row.</p>
+    <!-- field rail -->
+    <aside class="rail">
+      <div class="rail-head">
+        <input type="text" id="filter" placeholder="Search fields" aria-label="Search fields">
       </div>
+      <div class="rail-body" id="palette"></div>
+      <p class="rail-foot">Drag into a row, or click to append.</p>
     </aside>
 
-    <!-- ---------- layout editor ---------- -->
-    <section class="panel editor-panel">
-      <header>
-        Layout
+    <!-- terminal + rows -->
+    <div class="stage">
+
+      <!-- the signature element: a real terminal window -->
+      <div class="termwin">
+        <div class="termwin-bar">
+          <span class="tw-dots"><i></i><i></i><i></i></span>
+          <span class="tw-title" id="termTitle">claude</span>
+          <span class="spacer"></span>
+          <select id="sample" aria-label="Sample session data" class="tw-select">
+            <option value="mid">mid-session</option>
+            <option value="fresh">fresh session</option>
+            <option value="limits">near the limits</option>
+            <option value="bare">no subscription data</option>
+          </select>
+          <select id="scheme" aria-label="Terminal colour scheme" class="tw-select"></select>
+          <select id="font" aria-label="Terminal font" class="tw-select"></select>
+          <input type="range" id="fontSize" min="10" max="20" step="1" value="13" aria-label="Terminal font size" class="tw-range">
+        </div>
+        <div class="termwin-body">
+          <div class="term-scroll" aria-hidden="true">
+            <span class="tsl">› claude</span>
+            <span class="tsl dim">Reading tools/statusline/app.js…</span>
+            <span class="tsl dim">Edited 2 files · +41 −7</span>
+          </div>
+          <div class="term" id="term" aria-label="Status line preview"></div>
+        </div>
+      </div>
+
+      <div id="warn"></div>
+
+      <!-- rows -->
+      <div class="rows-head">
+        <span class="rows-title">Rows</span>
+        <span class="rows-hint">each row is one line in the terminal</span>
         <span class="spacer"></span>
         <button class="btn btn-sm" id="addRow">+ Add row</button>
-      </header>
-      <div class="body">
-        <div id="rows"></div>
+      </div>
+      <div id="rows"></div>
+    </div>
+  </div>
 
-        <div class="options">
+  <!-- ══════════════ 2 · REFINE ══════════════ -->
+  <p class="eyebrow"><span class="n">02</span> Refine <span class="opt">optional</span></p>
+
+  <div class="refine">
+    <details class="fold" open>
+      <summary>Spacing and dividers</summary>
+      <div class="fold-body">
+        <label class="check"><input type="checkbox" id="optDivider" checked> Show dividers between fields</label>
+        <div class="pair">
           <div>
-            <label class="field" for="sep">Separator</label>
+            <label class="field" for="sep">Divider</label>
             <input type="text" id="sep" value=" | " spellcheck="false">
           </div>
           <div>
-            <label class="field" for="sepColor">Separator colour</label>
+            <label class="field" for="sepColor">Colour</label>
             <select id="sepColor"></select>
           </div>
-          <div class="opt-checks">
-            <label class="check"><input type="checkbox" id="optAlign" checked> Align columns</label>
-            <label class="check"><input type="checkbox" id="optRule" checked> Rule underneath</label>
-            <label class="check"><input type="checkbox" id="optIcons" checked> Unicode icons</label>
-          </div>
         </div>
-        <p class="note">
-          Turn <strong>Unicode icons</strong> off if your terminal renders <code>⎇</code> or
-          <code>↻</code> too wide — common in Windows Terminal — and plain ASCII is used instead.
+        <label class="check"><input type="checkbox" id="optAlign" checked> Line rows up into columns</label>
+        <p class="hint">With dividers off, the divider text still sets the gap between fields — it is just drawn as blank space.</p>
+      </div>
+    </details>
+
+    <details class="fold">
+      <summary>Underline rule</summary>
+      <div class="fold-body">
+        <label class="check"><input type="checkbox" id="optRule" checked> Draw a rule under the status line</label>
+        <label class="check"><input type="checkbox" id="optFit"> Stretch it to the terminal width</label>
+        <p class="hint">
+          Stretching reads <code>$COLUMNS</code>, which Claude Code exports for you (v2.1.153+).
+          <code>tput cols</code> cannot see the terminal from inside the script.
         </p>
       </div>
-    </section>
+    </details>
+
+    <details class="fold">
+      <summary>Glyphs and links</summary>
+      <div class="fold-body">
+        <label class="check"><input type="checkbox" id="optIcons" checked> Use Unicode icons</label>
+        <label class="check"><input type="checkbox" id="optLinks"> Make the PR field clickable</label>
+        <p class="hint">
+          Turn icons off for plain ASCII if your terminal draws <code>⎇</code> or <code>↻</code>
+          double-width — Windows Terminal usually does, which also throws the columns out.
+          Clickable links use OSC 8 and need iTerm2, Kitty or WezTerm.
+        </p>
+      </div>
+    </details>
+
+    <details class="fold">
+      <summary>settings.json options</summary>
+      <div class="fold-body">
+        <div class="pair">
+          <div>
+            <label class="field" for="padding">Padding</label>
+            <input type="number" id="padding" min="0" max="40" step="1" value="0">
+          </div>
+          <div>
+            <label class="field" for="refresh">Refresh (s)</label>
+            <input type="number" id="refresh" min="0" max="3600" step="1" value="0">
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="optHideVim"> Hide the built-in vim indicator</label>
+        <p class="hint">
+          These go in <code>settings.json</code>, not the script. Padding adds horizontal
+          characters. Refresh re-runs the command every N seconds — leave it at 0 unless you show
+          a clock or a countdown, because updates otherwise only fire on new messages,
+          <code>/compact</code>, permission-mode changes and vim toggles.
+        </p>
+      </div>
+    </details>
   </div>
 
-  <!-- ---------- output ---------- -->
+  <!-- ══════════════ 3 · INSTALL ══════════════ -->
+  <p class="eyebrow"><span class="n">03</span> Install</p>
+
   <section class="panel out-panel">
     <header>
-      Apply it
-      <span class="spacer"></span>
       <div class="tabs" role="tablist">
         <button class="tab is-active" data-tab="prompt" role="tab">Prompt for Claude</button>
         <button class="tab" data-tab="script" role="tab">Raw script</button>
         <button class="tab" data-tab="install" role="tab">One-liner</button>
       </div>
+      <span class="spacer"></span>
+      <button class="btn btn-primary btn-sm" id="copyOut">Copy</button>
+      <button class="btn btn-sm" id="download">Download .sh</button>
     </header>
     <div class="body">
-      <p class="note" id="outHelp"></p>
+      <p class="hint" id="outHelp"></p>
       <pre class="code" id="out"></pre>
-      <div class="out-actions">
-        <button class="btn btn-primary" id="copyOut">Copy to clipboard</button>
-        <button class="btn" id="download">Download statusline-command.sh</button>
-      </div>
     </div>
   </section>
 
@@ -145,8 +193,8 @@
   <div class="wrap">
     <span>MIT licensed. Not affiliated with Anthropic.</span>
     <span class="spacer"></span>
-    <a href="../../docs/statusline-payload.html">Payload reference</a>
-    <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper/blob/main/docs/statusline-payload.md">Payload reference</a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper">github.com/Qutaiba-Khader/claude-code-helper</a>
   </div>
 </footer>
 

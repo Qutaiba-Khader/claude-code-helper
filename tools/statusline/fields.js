@@ -22,6 +22,16 @@
     if (dir === h) return '~';
     return dir.indexOf(h + '/') === 0 ? '~' + dir.slice(h.length) : dir;
   }
+  function dur(ms) {
+    if (ms === undefined || ms === null) return '';
+    var sec = Math.floor(ms / 1000);
+    if (sec >= 3600) {
+      var m = Math.floor((sec % 3600) / 60);
+      return Math.floor(sec / 3600) + 'h' + (m < 10 ? '0' : '') + m + 'm';
+    }
+    if (sec >= 60) return Math.floor(sec / 60) + 'm';
+    return sec + 's';
+  }
   function countdown(epoch, now) {
     if (!epoch) return '';
     var left = epoch - (now || Math.floor(Date.now() / 1000));
@@ -68,7 +78,7 @@
       preview: function (p) {
         var r = get(p, 'workspace.repo'); return r ? r.owner + '/' + r.name : '';
       } },
-    { id: 'pr', group: 'Project', label: 'open PR', hint: 'PR number and review state for this branch',
+    { id: 'pr', group: 'Project', label: 'open PR', hint: 'Number and review state; becomes a clickable OSC 8 link when links are on',
       preview: function (p) {
         var n = get(p, 'pr.number'); if (!n) return '';
         var s = get(p, 'pr.review_state');
@@ -77,6 +87,15 @@
     { id: 'worktree', group: 'Project', label: 'worktree', hint: 'Only in a --worktree session',
       preview: function (p, o) {
         var w = get(p, 'worktree.name'); return w ? ico(o, '⑂', 'wt:') + ' ' + w : '';
+      } },
+    { id: 'git_worktree', group: 'Project', label: 'git worktree', hint: 'Any linked git worktree, not just --worktree sessions',
+      preview: function (p, o) {
+        var w = get(p, 'workspace.git_worktree'); return w ? ico(o, '⑂', 'wt:') + ' ' + w : '';
+      } },
+    { id: 'added_dirs', group: 'Project', label: 'added dirs', hint: 'How many directories were added with /add-dir',
+      preview: function (p) {
+        var a = get(p, 'workspace.added_dirs');
+        return (a && a.length) ? '+' + a.length + ' dir' : '';
       } },
 
     // ---- model & context ----
@@ -128,6 +147,18 @@
         var v = get(p, 'context_window.total_output_tokens');
         return v ? ico(o, '↑', 'out') + ' ' + tok(v) : '';
       } },
+    { id: 'cache_read', group: 'Model', label: 'cache read', hint: 'Tokens read from the prompt cache on the last call',
+      preview: function (p) {
+        var v = get(p, 'context_window.current_usage.cache_read_input_tokens');
+        return v ? 'cache ' + tok(v) : '';
+      } },
+    { id: 'cache_write', group: 'Model', label: 'cache write', hint: 'Tokens written to the prompt cache on the last call',
+      preview: function (p) {
+        var v = get(p, 'context_window.current_usage.cache_creation_input_tokens');
+        return v ? 'cw ' + tok(v) : '';
+      } },
+    { id: 'over200k', group: 'Model', label: 'over 200k', hint: 'Flag: last response exceeded 200k tokens (fixed threshold)',
+      preview: function (p, o) { return p.exceeds_200k_tokens ? ico(o, '⚠ 200k+', '!200k+') : ''; } },
 
     // ---- session ----
     { id: 'effort', group: 'Session', label: 'effort', hint: 'low / medium / high / xhigh / max',
@@ -149,6 +180,8 @@
       preview: function (p) { return p.session_name || ''; } },
     { id: 'version', group: 'Session', label: 'Claude Code version', hint: 'e.g. v2.1.220',
       preview: function (p) { return p.version ? 'v' + p.version : ''; } },
+    { id: 'session_id', group: 'Session', label: 'session id', hint: 'First 8 characters — handy to tell sessions apart',
+      preview: function (p) { return p.session_id ? String(p.session_id).slice(0, 8) : ''; } },
 
     // ---- usage ----
     { id: 'rl5', group: 'Usage', label: '5h limit + reset', hint: 'Subscription only, after the first response', heat: true,
@@ -175,10 +208,30 @@
       preview: function (p) {
         var r = get(p, 'rate_limits.seven_day'); return r ? '7d ' + pct(r.used_percentage) : '';
       } },
-    { id: 'cost', group: 'Usage', label: 'session cost', hint: 'API list price of this session — not a subscription bill',
+    { id: 'cost', group: 'Usage', label: 'session cost', hint: 'Estimated, computed client-side; resets to $0 on /clear',
       preview: function (p) {
         var c = get(p, 'cost.total_cost_usd');
         return (c === undefined || c === null) ? '' : '$' + Number(c).toFixed(2);
+      } },
+    { id: 'duration', group: 'Usage', label: 'session duration', hint: 'Wall-clock time since the session started',
+      preview: function (p) { return dur(get(p, 'cost.total_duration_ms')); } },
+    { id: 'api_duration', group: 'Usage', label: 'API time', hint: 'Time spent waiting on API responses',
+      preview: function (p) { var v = dur(get(p, 'cost.total_api_duration_ms')); return v ? 'api ' + v : ''; } },
+    { id: 'lines', group: 'Usage', label: 'lines changed', hint: '+added/-removed this session',
+      preview: function (p) {
+        var a = get(p, 'cost.total_lines_added'), r = get(p, 'cost.total_lines_removed');
+        if (a === undefined && r === undefined) return '';
+        return '+' + (a || 0) + '/-' + (r || 0);
+      } },
+    { id: 'lines_added', group: 'Usage', label: 'lines added', hint: 'Added only',
+      preview: function (p) {
+        var a = get(p, 'cost.total_lines_added');
+        return (a === undefined || a === null) ? '' : '+' + a;
+      } },
+    { id: 'lines_removed', group: 'Usage', label: 'lines removed', hint: 'Removed only',
+      preview: function (p) {
+        var r = get(p, 'cost.total_lines_removed');
+        return (r === undefined || r === null) ? '' : '-' + r;
       } },
 
     // ---- literal ----
@@ -192,5 +245,5 @@
 
   global.CCH_FIELDS = FIELDS;
   global.CCH_FIELD = BY_ID;
-  global.CCH_UTIL = { tok: tok, pct: pct, home: home, countdown: countdown, get: get };
+  global.CCH_UTIL = { tok: tok, pct: pct, home: home, countdown: countdown, dur: dur, get: get };
 })(window);

@@ -65,10 +65,22 @@ ship ~300 bytes of config instead of the whole script.
 
 ```
 CONFIG='{"v":1,"sep":" | ","sepColor":"grey","rule":true,"align":true,"icons":true,
+         "divider":true,"fit":false,"links":false,
+         "st":{"padding":0,"refresh":0,"hideVim":false},
          "rows":[[{"f":"userhost","c":"bold-green"},{"f":"cwd","c":"bold-blue"}], …]}'
 ```
 
 Requirements: `jq` on `PATH`, plus `git` if you use the branch field.
+
+The `st` block is the only part the script ignores — `padding`, `refreshInterval` and
+`hideVimModeIndicator` belong to `settings.json`, and the installer writes them there.
+
+### What a status line cannot do
+
+Font, font size and position belong to the terminal emulator and to Claude Code's own layout —
+nothing you print can change them. The builder's font and colour-scheme pickers are preview only:
+they exist so you can check how your ANSI colours land in *your* terminal, not because the script
+sets them.
 
 ### Gotchas it already handles
 
@@ -76,7 +88,18 @@ Requirements: `jq` on `PATH`, plus `git` if you use the branch field.
   *single*-line status line is dimmed and truncated instead — so a grid has to stay multi-line.
 - **Font size is not settable** from a status line. That belongs to the terminal emulator.
 - **`workspace.repo` has no branch** — host, owner and name only. The branch has to come from `git`.
-- **`resets_at` may be epoch seconds or ISO-8601.** Both are parsed.
+- **`resets_at` is epoch seconds.** ISO-8601 is accepted too, defensively.
+- **Escape sequences take no columns.** A cell containing an OSC 8 hyperlink measures ~50
+  characters wider than it looks; widths are computed on an escape-stripped copy.
+- **`tput cols` cannot see the terminal.** Claude Code captures stdout rather than attaching a
+  tty; it exports `$COLUMNS` and `$LINES` instead (v2.1.153+).
+- **Updates are debounced at 300ms and a slow script gets cancelled** when the next update fires,
+  so a heavy `git status` means a stale line.
+- **Set `refreshInterval` for anything time-based.** Event triggers are: a new assistant message,
+  `/compact` finishing, a permission-mode change and a vim toggle — a clock will otherwise sit
+  still between messages.
+- **`disableAllHooks: true` disables the status line**, and the workspace trust dialog has to have
+  been accepted or it stays blank.
 - **jq's `//` treats `false` as empty.** `.rule // true` can never return `false`, which silently
   breaks boolean options; the script uses an explicit null check instead.
 - **Field parsing uses `IFS=$'\037'`.** A whitespace `IFS` collapses runs of empty fields and
