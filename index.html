@@ -36,6 +36,16 @@
   .why div h3 { color: var(--fg); }
   .why div p { font-size: .875rem; margin: 0; }
   section { margin-top: 44px; }
+  .repo-cta {
+    display: flex; gap: 22px; flex-wrap: wrap; align-items: center;
+    padding: 22px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg-2);
+  }
+  .repo-cta > div:first-child { flex: 1; min-width: 260px; }
+  .repo-cta h2 { margin-bottom: .35em; }
+  .repo-cta p { margin: 0; font-size: .9375rem; }
+  .repo-url { margin-top: .5em !important; font-family: var(--mono); font-size: .875rem !important; }
+  .repo-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
   .section-head p { margin: 0; font-size: .875rem; }
 </style>
@@ -77,6 +87,21 @@
     <div class="grid" id="tools"></div>
   </section>
 
+  <section class="repo-cta">
+    <div>
+      <h2>Open source</h2>
+      <p>
+        Everything here — the pages, the generated scripts, the docs — lives in one public
+        repository. Fork it, read it, or open an issue if a tool gets something wrong.
+      </p>
+      <p class="repo-url"><a href="https://github.com/Qutaiba-Khader/claude-code-helper">github.com/Qutaiba-Khader/claude-code-helper</a></p>
+    </div>
+    <div class="repo-actions">
+      <a class="btn btn-primary" href="https://github.com/Qutaiba-Khader/claude-code-helper">View the repository</a>
+      <a class="btn" href="https://github.com/Qutaiba-Khader/claude-code-helper/issues">Report an issue</a>
+    </div>
+  </section>
+
   <section>
     <div class="section-head"><h2>How it works</h2></div>
     <div class="why">
@@ -101,7 +126,7 @@
   <div class="wrap">
     <span>MIT licensed. Not affiliated with Anthropic.</span>
     <span class="spacer"></span>
-    <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper">github.com/Qutaiba-Khader/claude-code-helper</a>
     <a href="https://github.com/Qutaiba-Khader/claude-code-helper/issues">Report an issue</a>
   </div>
 </footer>
