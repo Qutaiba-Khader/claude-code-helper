@@ -491,9 +491,13 @@
       el.className = 'row';
       el.dataset.row = r;
 
-      var lab = document.createElement('span');
-      lab.className = 'rlabel';
-      lab.textContent = r + 1;
+      var lab = document.createElement('button');
+      lab.type = 'button';
+      lab.className = 'rlabel rgrip';
+      lab.dataset.row = r;
+      lab.title = 'Drag to reorder this row';
+      lab.setAttribute('aria-label', 'Row ' + (r + 1) + ', drag to reorder');
+      lab.append(el('span', 'rg', '⠿'), el('span', 'rn', String(r + 1)));
 
       var chips = document.createElement('div');
       chips.className = 'chips';
@@ -939,7 +943,16 @@
   document.addEventListener('pointerdown', function (e) {
     var chip = e.target.closest('.chip');
     var pf = e.target.closest('.pfield');
+    var grip = e.target.closest('.rgrip');
     if (e.target.closest('.x') || e.button === 1 || e.button === 2) return;
+
+    if (grip) {
+      drag = {
+        startX: e.clientX, startY: e.clientY, active: false,
+        rowFrom: +grip.dataset.row, el: grip.closest('.row'), ghost: null, rowTo: null
+      };
+      return;
+    }
     if (!chip && !pf) return;
 
     drag = {
@@ -952,6 +965,23 @@
 
   document.addEventListener('pointermove', function (e) {
     if (!drag) return;
+
+    if (drag.rowFrom !== undefined) {
+      if (!drag.active) {
+        if (Math.abs(e.clientY - drag.startY) < 5) return;
+        drag.active = true;
+        drag.el.classList.add('is-row-dragging');
+        document.body.style.userSelect = '';
+      }
+      var to = rowDropIndex(e.clientY);
+      drag.rowTo = to;
+      document.querySelectorAll('.row').forEach(function (n, i) {
+        n.classList.toggle('drop-above', i === to);
+        n.classList.toggle('drop-below', to === document.querySelectorAll('.row').length && i === to - 1);
+      });
+      return;
+    }
+
     if (!drag.active) {
       if (Math.abs(e.clientX - drag.startX) + Math.abs(e.clientY - drag.startY) < 5) return;
       drag.active = true;
@@ -977,6 +1007,16 @@
     if (!drag) return;
     var d = drag;
     drag = null;
+
+    if (d.rowFrom !== undefined) {
+      document.querySelectorAll('.row').forEach(function (n) {
+        n.classList.remove('drop-above', 'drop-below', 'is-row-dragging');
+      });
+      document.body.style.userSelect = '';
+      if (!d.active || d.rowTo === null) return;
+      moveRowTo(d.rowFrom, d.rowTo);
+      return;
+    }
     document.body.style.userSelect = '';
     if (d.ghost) d.ghost.remove();
     document.querySelectorAll('.row.drop-target').forEach(function (n) { n.classList.remove('drop-target'); });
@@ -990,6 +1030,25 @@
     if (d.field) addCell(d.field, d.target.r, d.target.c);
     else moveCell(d.source, d.target);
   });
+
+  // Which gap a dragged row would drop into: 0 = above the first row.
+  function rowDropIndex(y) {
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.row'));
+    for (var i = 0; i < rows.length; i++) {
+      var b = rows[i].getBoundingClientRect();
+      if (y < b.top + b.height / 2) return i;
+    }
+    return rows.length;
+  }
+
+  function moveRowTo(from, to) {
+    if (to > from) to--;
+    if (to === from) return;
+    var row = state.rows.splice(from, 1)[0];
+    state.rows.splice(Math.max(0, Math.min(to, state.rows.length)), 0, row);
+    selected = null;
+    commit();
+  }
 
   // Which row, and where in it, is the pointer over?
   function dropTarget(x, y) {

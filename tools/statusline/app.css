@@ -246,9 +246,22 @@
   background: color-mix(in srgb, var(--accent) 7%, var(--bg-2));
 }
 .row .rlabel {
-  flex: none; width: 20px; display: grid; place-items: center;
+  flex: none; width: 22px; display: grid; place-items: center; gap: 0;
   font-family: var(--mono); font-size: .6875rem; color: var(--fg-3);
+  background: none; border: 0; padding: 0; cursor: grab; touch-action: none;
+  border-radius: 3px;
 }
+.row .rlabel:hover { background: var(--bg-3); color: var(--fg); }
+.row .rlabel:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.row .rlabel:active { cursor: grabbing; }
+.row .rlabel .rg { font-size: .8125rem; line-height: 1; opacity: .55; }
+.row .rlabel .rn { font-size: .625rem; line-height: 1.2; }
+.row .rlabel:hover .rg { opacity: 1; }
+
+/* where a dragged row will land */
+.row.is-row-dragging { opacity: .35; }
+.row.drop-above { box-shadow: 0 -2px 0 var(--accent); }
+.row.drop-below { box-shadow: 0 2px 0 var(--accent); }
 .row .chips {
   display: flex; flex-wrap: wrap; gap: 6px; flex: 1;
   align-content: center; align-items: center; min-height: 30px;
