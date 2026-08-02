@@ -795,15 +795,12 @@
       var dir = (p.workspace && p.workspace.current_dir) || p.cwd || '';
 
       banner.textContent = '';
-      [['           ', 'Claude Code v' + (p.version || '2.1.220'), 'v'],
-       [' \u2590\u259B\u2588\u2588\u2588\u259C\u258C   ', model + (effort ? ' with ' + effort + ' effort' : ''), 'm'],
-       ['\u259D\u259C\u2588\u2588\u2588\u2588\u2588\u259B\u2598  ', p.rate_limits ? 'Claude Max' : 'Claude Pro', 'p'],
-       ['  \u2598\u2598 \u259D\u259D    ', dir, 'd']
+      [['Claude Code v' + (p.version || '2.1.220'), 'v'],
+       [model + (effort ? ' with ' + effort + ' effort' : ''), 'm'],
+       [p.rate_limits ? 'Claude Max' : 'Claude Pro', 'p'],
+       [dir, 'd']
       ].forEach(function (row) {
-        var line = document.createElement('span');
-        line.className = 'tsl';
-        line.append(el('b', 'logo', row[0]), el('span', 'bi ' + row[2], row[1]));
-        banner.appendChild(line);
+        banner.appendChild(el('span', 'tsl bi ' + row[1], row[0]));
       });
     }
 

@@ -6,8 +6,8 @@
 <title>Status line builder — Claude Code Helper</title>
 <meta name="description" content="Drag fields into rows, watch a live terminal preview, then copy the setup straight into Claude Code.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▚</text></svg>">
-<link rel="stylesheet" href="../../assets/css/base.css?v=v8">
-<link rel="stylesheet" href="app.css?v=v8">
+<link rel="stylesheet" href="../../assets/css/base.css?v=v9">
+<link rel="stylesheet" href="app.css?v=v9">
 </head>
 <body>
 
@@ -74,7 +74,10 @@
         </div>
         <div class="termwin-body">
           <!-- the startup banner Claude Code prints -->
-          <div class="term-banner" id="termBanner" aria-hidden="true"></div>
+          <div class="term-banner" aria-hidden="true">
+            <svg class="tb-logo" viewBox="0 0 17 5" preserveAspectRatio="none" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="3" y="0" width="12" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="6" y="1" width="6" height="1"/><rect x="13" y="1" width="2" height="1"/><rect x="1" y="2" width="16" height="1"/><rect x="3" y="3" width="12" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="11" y="4" width="1" height="1"/><rect x="13" y="4" width="1" height="1"/></svg>
+            <div id="termBanner"></div>
+          </div>
           <!-- input area: a rule, the prompt, a rule -->
           <div class="term-rule" id="termRule1" aria-hidden="true"></div>
           <div class="term-prompt" aria-hidden="true"><span class="pc">❯</span> <span class="ti-cursor"></span></div>
@@ -217,8 +220,8 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="../../assets/js/ui.js?v=v8"></script>
-<script src="fields.js?v=v8"></script>
-<script src="app.js?v=v8"></script>
+<script src="../../assets/js/ui.js?v=v9"></script>
+<script src="fields.js?v=v9"></script>
+<script src="app.js?v=v9"></script>
 </body>
 </html>

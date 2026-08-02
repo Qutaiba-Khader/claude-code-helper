@@ -143,28 +143,26 @@
   color: var(--term-fg, #dfe4ee);
 }
 
-/* the startup banner. The logo is built from quadrant block glyphs
-   (U+2580-U+259F) — they only form the shape when consecutive lines touch, so
-   the banner runs at line-height 1 and the block characters get a font stack
-   that is known to carry them at the right advance width. */
+/* The startup banner. The logo is an SVG rather than the block glyphs Claude
+   Code prints (U+2580-U+259F): those only form the shape when consecutive lines
+   touch exactly, which depends on the font and the line height. The SVG is
+   generated from the same quadrant grid, so it is the identical shape and
+   renders the same everywhere. preserveAspectRatio is off on purpose — the
+   units map to half a character across and half a line down. */
 .term-banner {
-  display: block; margin-bottom: 8px;
-  line-height: 1;
+  position: relative;
+  padding-left: 11ch;
+  margin-bottom: 10px;
+  line-height: 1.3;
 }
-.term-banner .tsl { line-height: 1; }
-.tsl .logo {
-  font-family: "DejaVu Sans Mono", "Noto Sans Mono", "Liberation Mono",
-               "Cascadia Mono", Consolas, Menlo, var(--term-font, var(--mono));
-  font-size: var(--term-size, 12px);
+.tb-logo {
+  position: absolute; left: 0; top: 1.3em;      /* aligns with the second line */
+  width: 8.5ch; height: 3.25em;                 /* 17 units wide, 5 half-lines tall */
+  fill: #d97757;                                /* Claude Code's own orange */
 }
 .tsl { display: block; }
-.tsl .logo { color: #d97757; font-weight: 400; }   /* Claude Code's own orange */
-.tsl .bi {
-  color: var(--term-fg, #dfe4ee);
-  font-family: var(--term-font, var(--mono));
-  line-height: 1;
-}
-.tsl .bi.v, .tsl .bi.p, .tsl .bi.d { opacity: .55; }
+.tsl.bi { color: var(--term-fg, #dfe4ee); }
+.tsl.bi.v, .tsl.bi.p, .tsl.bi.d { opacity: .55; }
 
 /* input area: rule, prompt, rule */
 .term-rule { display: block; opacity: .3; overflow: hidden; }
