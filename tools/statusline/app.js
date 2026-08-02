@@ -308,6 +308,9 @@
     st: { refresh: 0 }
   };
   var state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
+  // the preset currently in the editor, and whether it has been changed since
+  var loadedPreset = 'grid';
+  var edited = false;
   var selected = null;      // {r, c}
   var template = null;      // statusline.sh source, fetched once
   var tab = 'prompt';
@@ -374,7 +377,7 @@
     var raw = null;
     if (hash) { try { raw = b64decode(hash[1]); } catch (e) { raw = null; } }
     if (!raw) { try { raw = localStorage.getItem(LS); } catch (e) { raw = null; } }
-    if (!raw) return;
+    if (!raw) return false;
     try {
       var cfg = JSON.parse(raw);
       if (cfg && Array.isArray(cfg.rows)) {
@@ -383,8 +386,10 @@
         });
         state = Object.assign(clone(DEFAULTS), cfg);
         state.st = Object.assign(clone(DEFAULTS.st), cfg.st || {});
+        return true;
       }
     } catch (e) { /* keep the default */ }
+    return false;
   }
 
   // -------------------------------------------------------------- palette UI
@@ -888,7 +893,38 @@
   }
 
   // ------------------------------------------------------------ mutations
-  function commit() { save(); renderRows(); update(); }
+  function commit() { markEdited(); save(); renderRows(); update(); }
+
+
+  function markEdited() {
+    if (edited) return;
+    edited = true;
+    var sel = $('#preset');
+    if (sel && loadedPreset) {
+      sel.value = '';
+      var opt = sel.querySelector('option[value=""]');
+      if (opt) opt.textContent = PRESETS[loadedPreset].name + ' (edited)';
+    }
+  }
+
+  function setPreset(key) {
+    loadedPreset = key;
+    edited = false;
+    var sel = $('#preset');
+    if (!sel) return;
+    var opt = sel.querySelector('option[value=""]');
+    if (opt) opt.textContent = 'Start from a preset…';
+    sel.value = key || '';
+  }
+
+  // Anything that throws work away asks first.
+  function guard(title, body, confirmLabel, run) {
+    if (!edited) { run(); return; }
+    window.confirmAction({
+      title: title, body: body, confirmLabel: confirmLabel,
+      cancelLabel: 'Keep my layout', destructive: true
+    }).then(function (ok) { if (ok) run(); });
+  }
 
   // Moving a row jumps unless you show it travelling. Measure before, re-render,
   // then play each row from its old position to its new one.
@@ -962,6 +998,20 @@
     }, function (j) { return j === r ? t : j === t ? r : j; });
   }
   function removeRow(r) {
+    var row = state.rows[r] || [];
+    if (row.length) {
+      var what = isRuleRow(row) ? 'this line'
+               : 'row ' + (r + 1) + ' and its ' + row.length + ' item' + (row.length === 1 ? '' : 's');
+      window.confirmAction({
+        title: 'Delete ' + what + '?', body: 'It cannot be brought back.',
+        confirmLabel: 'Delete', cancelLabel: 'Keep it', destructive: true
+      }).then(function (ok) { if (ok) doRemoveRow(r); });
+      return;
+    }
+    doRemoveRow(r);
+  }
+
+  function doRemoveRow(r) {
     animateRowChange(function () {
       state.rows.splice(r, 1);
       if (!state.rows.length) state.rows.push([]);
@@ -1501,12 +1551,19 @@
       ps.appendChild(o);
     });
     ps.addEventListener('change', function () {
-      if (!ps.value) return;
-      state = Object.assign(clone(DEFAULTS), clone(PRESETS[ps.value].cfg));
-      selected = null;
-      ps.value = '';
-      writeOptions(); save(); renderPalette(); renderRows(); update();
-      window.toast('Preset loaded');
+      var key = ps.value;
+      if (!key) { ps.value = loadedPreset || ''; return; }
+      guard('Replace your layout?',
+            'Loading "' + PRESETS[key].name + '" discards the changes you have made.',
+            'Load the preset',
+        function () {
+          state = Object.assign(clone(DEFAULTS), clone(PRESETS[key].cfg));
+          selected = null;
+          setPreset(key);
+          writeOptions(); save(); renderPalette(); renderRows(); update();
+          window.toast(PRESETS[key].name + ' loaded');
+        });
+      ps.value = edited ? '' : key;
     });
 
     // terminal colour schemes and fonts (preview only)
@@ -1539,7 +1596,14 @@
       look.size = Number($('#fontSize').value); saveLook(); applyLook();
     });
 
-    load();
+    var restored = load();
+    if (restored) {
+      loadedPreset = null;
+      var opt0 = ps.querySelector('option[value=""]');
+      if (opt0) opt0.textContent = 'Your layout';
+    } else {
+      ps.value = 'grid';
+    }
     writeOptions();
     renderPalette();
     renderRows();
@@ -1592,19 +1656,27 @@
         data.rows = data.rows.map(function (r) {
           return (Array.isArray(r) ? r : []).filter(function (c) { return c && FIELD[c.f]; });
         });
-        state = Object.assign(clone(DEFAULTS), data);
-        state.st = Object.assign(clone(DEFAULTS.st), data.st || {});
-        selected = null;
-        writeOptions(); save(); renderPalette(); renderRows(); update();
-        window.toast('Loaded ' + name);
+        guard('Replace your layout?', 'Importing ' + name + ' discards your changes.',
+              'Import it', function () {
+          state = Object.assign(clone(DEFAULTS), data);
+          state.st = Object.assign(clone(DEFAULTS.st), data.st || {});
+          selected = null;
+          setPreset(null);
+          writeOptions(); save(); renderPalette(); renderRows(); update();
+          window.toast('Loaded ' + name);
+        });
       });
     });
 
     $('#reset').addEventListener('click', function () {
-      state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
-      selected = null;
-      writeOptions(); save(); renderPalette(); renderRows(); update();
-      window.toast('Reset to the default layout');
+      guard('Start over?', 'This discards your layout and goes back to the default.',
+            'Reset it', function () {
+        state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
+        selected = null;
+        setPreset('grid');
+        writeOptions(); save(); renderPalette(); renderRows(); update();
+        window.toast('Reset to the default layout');
+      });
     });
 
     $('#share').addEventListener('click', function (e) {

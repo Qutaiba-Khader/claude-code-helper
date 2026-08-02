@@ -492,6 +492,7 @@
           window.toast('That file is not a settings object');
           return;
         }
+        var existing = Object.keys(state.chosen).length;
         var found = 0, unknown = [];
         function walk(obj, prefix) {
           Object.keys(obj).forEach(function (k) {
@@ -507,6 +508,7 @@
         }
         walk(data, '');
         commit();
+        if (existing) window.toast('Merged into your ' + existing + ' existing setting' + (existing === 1 ? '' : 's'));
         window.toast(found
           ? 'Loaded ' + found + ' setting' + (found === 1 ? '' : 's') + ' from ' + name +
             (unknown.length ? ' · ' + unknown.length + ' not recognised' : '')
@@ -515,10 +517,19 @@
     });
 
     $('#clear').addEventListener('click', function () {
-      state.chosen = {};
-      selected = null;
-      commit();
-      window.toast('Cleared');
+      var n = Object.keys(state.chosen).length;
+      if (!n) { window.toast('Nothing to clear'); return; }
+      window.confirmAction({
+        title: 'Clear all ' + n + ' setting' + (n === 1 ? '' : 's') + '?',
+        body: 'Your file goes back to empty. Export first if you want to keep it.',
+        confirmLabel: 'Clear it', cancelLabel: 'Keep them', destructive: true
+      }).then(function (ok) {
+        if (!ok) return;
+        state.chosen = {};
+        selected = null;
+        commit();
+        window.toast('Cleared');
+      });
     });
     $('#share').addEventListener('click', function (e) {
       save();

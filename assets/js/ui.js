@@ -51,6 +51,51 @@
     return Promise.resolve(fallback());
   };
 
+  // ---- confirm before destroying work ----------------------------------
+  // A native <dialog> so focus trapping, Esc and the backdrop come for free.
+  window.confirmAction = function (opts) {
+    return new Promise(function (resolve) {
+      var dlg = document.createElement('dialog');
+      dlg.className = 'confirm';
+
+      var h = document.createElement('h2');
+      h.textContent = opts.title;
+
+      var body = document.createElement('p');
+      body.textContent = opts.body || '';
+
+      var actions = document.createElement('div');
+      actions.className = 'confirm-actions';
+
+      var cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.className = 'btn';
+      cancel.textContent = opts.cancelLabel || 'Keep it';
+
+      var go = document.createElement('button');
+      go.type = 'button';
+      go.className = 'btn btn-primary' + (opts.destructive ? ' btn-danger' : '');
+      go.textContent = opts.confirmLabel || 'Continue';
+
+      actions.append(cancel, go);
+      dlg.append(h, body, actions);
+      document.body.appendChild(dlg);
+
+      function done(ok) {
+        dlg.close();
+        dlg.remove();
+        resolve(ok);
+      }
+      cancel.addEventListener('click', function () { done(false); });
+      go.addEventListener('click', function () { done(true); });
+      dlg.addEventListener('cancel', function (e) { e.preventDefault(); done(false); });
+      dlg.addEventListener('click', function (e) { if (e.target === dlg) done(false); });
+
+      dlg.showModal();
+      go.focus();
+    });
+  };
+
   // ---- save and load a file --------------------------------------------
   window.downloadFile = function (name, text, mime) {
     var blob = new Blob([text], { type: mime || 'application/json' });
