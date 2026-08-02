@@ -33,13 +33,18 @@ config_all() {
 
 render() {  # render <config> <payload-file>
   local cfg=$1 pl=$2 tmp
+  pl=$(cd "$(dirname "$pl")" && pwd)/$(basename "$pl")
   tmp=$(mktemp)
   awk -v cfg="$cfg" '!d && /^CONFIG=/ { print "CONFIG=\047" cfg "\047"; d=1; next } { print }' \
     "$SCRIPT" > "$tmp"
   # Claude Code runs the status line with LANG empty and LC_ALL unset, so the
   # harness must too — otherwise it papers over the locale the script has to
-  # pick for itself. Clock and width are fixed so a snapshot is stable.
-  env -u LC_ALL -u LANG COLUMNS=100 EPOCHSECONDS=4000000000 bash "$tmp" < "$pl" 2>&1
+  # pick for itself. Everything the script reads from the machine is pinned, or
+  # the snapshots would only match on the machine that recorded them.
+  env -u LC_ALL -u LANG \
+      USER=testuser LOGNAME=testuser HOSTNAME=testhost HOME=/home/testuser \
+      COLUMNS=100 TZ=UTC \
+      bash -c 'cd / && exec bash "$1" < "$2"' _ "$tmp" "$pl" 2>&1
   rm -f "$tmp"
 }
 
@@ -83,6 +88,8 @@ case "${1:-check}" in
       err=$(env -u LC_ALL -u LANG COLUMNS=100 bash -c '
               awk -v c="$1" "!d && /^CONFIG=/ { print \"CONFIG=\047\" c \"\047\"; d=1; next } { print }" "$2" > "$3"
               bash "$3" < "$4" 2>&1 >/dev/null' _ "$cfg" "$SCRIPT" "$(mktemp)" "$pl" | tr -d '\n')
+      # `hostname -s` is only reached when HOSTNAME is unset, which the pin above
+      # prevents — so nothing in a snapshot can vary by machine.
       if [ -n "$err" ]; then
         printf 'STDERR  %-22s %-8s %s\n' "$(basename "$pl")" "$name" "${err:0:70}"
         fail=$(( fail + 1 ))
