@@ -1130,6 +1130,10 @@
     $('#optFit').checked = !!state.fit;
     $('#optLinks').checked = !!state.links;
     $('#optDivider').checked = !!state.divider;
+    document.querySelectorAll('#sepPresets [data-sep]').forEach(function (b) {
+      b.classList.toggle('is-on', b.dataset.sep === state.sep &&
+        (b.dataset.sep.trim().length > 0) === !!state.divider);
+    });
     $('#padding').value = state.st.padding || 0;
     $('#refresh').value = state.st.refresh || 0;
     $('#optHideVim').checked = !!state.st.hideVim;
@@ -1213,6 +1217,14 @@
     $('#padding').addEventListener('input', readOptions);
     $('#refresh').addEventListener('input', readOptions);
     $('#sep').addEventListener('input', readOptions);
+
+    $('#sepPresets').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-sep]');
+      if (!b) return;
+      $('#sep').value = b.dataset.sep;
+      $('#optDivider').checked = b.dataset.sep.trim().length > 0;
+      readOptions();
+    });
 
     $('#addRow').addEventListener('click', function () {
       state.rows.push([]);

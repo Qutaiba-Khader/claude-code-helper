@@ -351,3 +351,10 @@
 .tab:hover { color: var(--fg); background: var(--bg-2); }
 .tab.is-active { color: var(--fg); background: var(--bg-2); border-color: var(--line-2); }
 .out-panel .hint { margin: 0 0 10px; }
+
+/* one-click divider marks — the character between fields comes from here */
+.sep-presets { display: flex; gap: 4px; flex-wrap: wrap; }
+.sep-presets .btn { min-width: 30px; padding: 5px 8px; }
+.sep-presets .btn.is-on {
+  background: var(--accent); border-color: var(--accent); color: #16120a; font-weight: 600;
+}
