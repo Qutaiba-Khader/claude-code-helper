@@ -25,7 +25,7 @@
 
 /* ══════════ workbench: field rail + stage ══════════ */
 .workbench {
-  display: grid; gap: 14px;
+  display: grid; gap: 14px; align-content: start;
   grid-template-columns: 236px minmax(0, 1fr);
   align-items: start;
 }
@@ -35,9 +35,10 @@
 .rail {
   background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
   position: sticky; top: 68px; overflow: hidden;
-  display: flex; flex-direction: column; max-height: calc(100vh - 96px);
+  display: flex; flex-direction: column;
+  max-height: min(560px, calc(100vh - 96px));
 }
-@media (max-width: 900px) { .rail { position: static; max-height: 340px; } }
+@media (max-width: 900px) { .rail { position: static; max-height: 320px; } }
 .rail-head { padding: 10px; border-bottom: 1px solid var(--line); }
 .rail-body { overflow-y: auto; padding: 10px; flex: 1; }
 .rail-foot {
@@ -125,7 +126,7 @@
 /* ---------- rows ---------- */
 .rows-head {
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  margin: 20px 0 8px;
+  margin: 22px 0 9px;
 }
 .rows-title { font-family: var(--mono); font-size: .8125rem; font-weight: 600; color: var(--fg); }
 .rows-hint { font-size: .75rem; color: var(--fg-3); }
@@ -207,7 +208,7 @@
 /* ══════════ refine: collapsible groups ══════════ */
 .refine {
   display: grid; gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   align-items: start;
 }
 .fold {
