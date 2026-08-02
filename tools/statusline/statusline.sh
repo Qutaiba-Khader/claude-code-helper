@@ -24,7 +24,8 @@ if [ -z "${LC_ALL:-}" ]; then
   [ -n "${LC_ALL:-}" ] && export LC_ALL
 fi
 
-input=$(cat)
+# read stdin without forking cat; -d '' reads to EOF and returns 1 there
+IFS= read -r -d '' input || :
 
 # --- payload -> shell vars -------------------------------------------------
 # \x1f (unit separator) keeps empty fields intact; a whitespace IFS would

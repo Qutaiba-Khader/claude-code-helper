@@ -21,8 +21,10 @@ RAMP='c46,c82,c118,c154,c190,c226,c220,c214,c208,c196'
 config_default() { grep -m1 "^CONFIG='" "$SCRIPT" | sed "s/^CONFIG='//;s/'$//"; }
 config_all() {
   local ids f rows=''
+  # `time` and `date` read the wall clock, so they cannot be part of a
+  # byte-exact snapshot; everything else is.
   ids=$(grep -o "^    [a-z_0-9]*)" "$SCRIPT" | tr -d ' )' | sort -u |
-        grep -vE '^(black|blue|red|green|yellow|magenta|purple|cyan|white|grey|gray|dim|bold|heat|ramp|default|text)$')
+        grep -vE '^(black|blue|red|green|yellow|magenta|purple|cyan|white|grey|gray|dim|bold|heat|ramp|default|text|time|date)$')
   for f in $ids; do
     rows+="{\"f\":\"$f\",\"c\":\"ramp\",\"r\":\"$RAMP\",\"b\":\"dim\"},"
   done
