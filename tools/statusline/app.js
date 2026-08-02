@@ -406,9 +406,20 @@
   // ------------------------------------------------------------ persistence
   var LS = 'cch-statusline';
   var LS_LOOK = 'cch-statusline-look';
+
+  // Persisting and rewriting the share link are not worth doing in the same
+  // frame as the edit that triggered them.
+  var saveTimer = null;
   function save() {
-    try { localStorage.setItem(LS, configJSON()); } catch (e) { /* ignore */ }
-    history.replaceState(null, '', '#c=' + b64encode(configJSON()));
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 120);
+  }
+  function saveNow() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    var cfg = configJSON();
+    try { localStorage.setItem(LS, cfg); } catch (e) { /* ignore */ }
+    history.replaceState(null, '', '#c=' + b64encode(cfg));
   }
   function saveLook() {
     try { localStorage.setItem(LS_LOOK, JSON.stringify(look)); } catch (e) { /* ignore */ }
@@ -1808,12 +1819,21 @@
     install: 'Runs on the machine you paste it into: writes ~/.claude/statusline-command.sh and updates settings.json. It needs curl, jq and bash.'
   };
 
+  var outTimer = null;
   function renderOutput() {
+    clearTimeout(outTimer);
+    outTimer = setTimeout(renderOutputNow, 120);
+  }
+  function renderOutputNow() {
+    clearTimeout(outTimer);
+    outTimer = null;
     $('#outHelp').textContent = HELP[tab];
     $('#out').textContent = tab === 'prompt' ? buildPrompt()
                           : tab === 'script' ? buildScript()
                           : buildInstall();
   }
+  // anything that reads the output or the URL has to see the current state
+  function flush() { if (outTimer) renderOutputNow(); if (saveTimer) saveNow(); }
 
   // ------------------------------------------------------------------ wiring
   function update() { renderPreview(); renderOutput(); }
@@ -1944,6 +1964,7 @@
 
     // Export is the config itself, so a saved file is also a valid CONFIG line.
     $('#export').addEventListener('click', function () {
+      flush();
       window.downloadFile('claude-statusline.json', configJSON() + '\n');
       window.toast('Saved claude-statusline.json');
     });
@@ -1981,7 +2002,7 @@
     });
 
     $('#share').addEventListener('click', function (e) {
-      save();
+      flush();
       window.copyText(location.href).then(function (ok) {
         if (ok) { window.flashButton(e.target, 'Link copied'); window.toast('Share link copied'); }
         else window.toast('Copy failed — select the URL bar instead');
@@ -1993,11 +2014,12 @@
         document.querySelectorAll('.tab').forEach(function (o) { o.classList.remove('is-active'); });
         t.classList.add('is-active');
         tab = t.dataset.tab;
-        renderOutput();
+        renderOutputNow();
       });
     });
 
     $('#copyOut').addEventListener('click', function (e) {
+      flush();
       window.copyText($('#out').textContent).then(function (ok) {
         if (ok) { window.flashButton(e.target, 'Copied'); window.toast('Copied to clipboard'); }
         else window.toast('Copy failed — select the text and copy manually');
@@ -2005,6 +2027,7 @@
     });
 
     $('#download').addEventListener('click', function () {
+      flush();
       var blob = new Blob([buildScript()], { type: 'text/x-shellscript' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -2014,6 +2037,11 @@
     });
 
     update();
+
+    window.addEventListener('beforeunload', flush);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') flush();
+    });
 
     if (window.ResizeObserver) {
       var ro = new ResizeObserver(function () { renderChrome(); });
