@@ -1148,7 +1148,11 @@
         var cell = state.rows[r][0];
         var rw = (cell.t === 'fit') ? Math.max(wide, termCols()) : wide;
         var f2 = document.createDocumentFragment();
-        f2.appendChild(span((state.icons ? '─' : '-').repeat(Math.max(1, rw)), cell.c || 'grey', p, 'rule', cell));
+        var rnode = span((state.icons ? '─' : '-').repeat(Math.max(1, rw)),
+                         cell.c || 'grey', p, 'rule', cell);
+        rnode.dataset.r = r;      // so hovering the row outlines the line too
+        rnode.dataset.c = 0;
+        f2.appendChild(rnode);
         lines.push({ frag: f2, width: rw });
         return;
       }
