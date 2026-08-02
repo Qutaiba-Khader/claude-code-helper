@@ -885,10 +885,13 @@
       var width = 0;
       for (var c = 0; c <= last[r]; c++) {
         if (c > 0) {
-          frag.appendChild(state.divider
-            ? span(state.sep, state.sepColor, p)
-            : document.createTextNode(' '.repeat(state.sep.length)));
-          width += state.sep.length;
+          if (state.divider) {
+            frag.appendChild(span(state.sep, state.sepColor, p));
+            width += state.sep.length;
+          } else {
+            frag.appendChild(document.createTextNode(' '));
+            width += 1;
+          }
         }
         var item = row[c] || { text: '', cell: { c: 'default' } };
         if (item.text) {

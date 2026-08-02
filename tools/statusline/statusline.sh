@@ -313,9 +313,12 @@ done
 SEPFMT=$(colour "$cfg_sepcol")
 if [ "$cfg_div" = "true" ]; then
   SEP="${SEPFMT}${cfg_sep}${RST}"
+  SEPW=${#cfg_sep}
 else
-  # dividers off: keep the spacing, drop the mark
-  SEP=$(printf '%*s' "${#cfg_sep}" '')
+  # dividers off: the mark goes entirely. One space keeps cells from touching;
+  # column alignment does the rest.
+  SEP=' '
+  SEPW=1
 fi
 
 first=1
@@ -343,7 +346,7 @@ if [ "$cfg_rule" = "true" ] && [ $first = 0 ]; then
     for ((c=0; c<=${LAST[$r]}; c++)); do
       cw=${W[$c]}; [ "${LEN[$r,$c]:-0}" -gt $cw ] && cw=${LEN[$r,$c]}
       row_w=$(( row_w + cw ))
-      [ $c -gt 0 ] && row_w=$(( row_w + ${#cfg_sep} ))
+      [ $c -gt 0 ] && row_w=$(( row_w + SEPW ))
     done
     [ $row_w -gt $wide ] && wide=$row_w
   done
