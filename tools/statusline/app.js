@@ -192,7 +192,7 @@
   var DOT = { f: 'text', c: 'grey', t: '·' };
   function RULE(c) { return { f: 'rule', c: c || 'grey' }; }
   // every percentage-carrying field in a preset is coloured by value
-  function BYVALUE(f) { return { f: f, c: 'ramp', r: RAMP_DEFAULT.join(',') }; }
+  function BYVALUE(f) { return { f: f, c: 'ramp', r: RAMP_DEFAULT.join(','), b: 'dim' }; }
   function isRuleRow(row) { return row.length === 1 && row[0].f === 'rule'; }
 
   // ---------------------------------------------------------------- presets
@@ -380,6 +380,7 @@
           if (cell.i === false) o.i = false;
           if (cell.c === 'ramp') o.r = rampOf(cell).join(',');
           if (cell.f === 'rule' && cell.t === 'fit') o.t = 'fit';
+          if ((cell.c === 'ramp' || cell.c === 'heat') && cell.b) o.b = cell.b;
           return o;
         });
       })
@@ -629,7 +630,7 @@
     el.tabIndex = 0;
     if (selected && selected.r === r && selected.c === c) el.classList.add('is-selected');
 
-    var text = previewCell(cell, currentSample());
+    var text = stripMarks(previewCell(cell, currentSample()));
     if (!text) el.classList.add('is-empty');
     el.title = (f.hint || '') + (text ? '' : ' — nothing to show with this sample data');
 
@@ -699,7 +700,7 @@
     var box = document.createElement('div');
     box.className = 'cell-preview';
 
-    var text = previewCell(cell, p) || (f.custom ? (cell.t || 'text') : '—');
+    var text = stripMarks(previewCell(cell, p)) || (f.custom ? (cell.t || 'text') : '—');
     var isRamp = cell.c === 'ramp';
 
     var main = document.createElement('div');
@@ -734,7 +735,7 @@
         var pctLabel = document.createElement('em');
         pctLabel.textContent = (i * 10) + '%';
         var val = document.createElement('span');
-        val.textContent = sampleAt(f, i * 10 + 5) || '·';
+        val.textContent = stripMarks(sampleAt(f, i * 10 + 5)) || '·';
         val.style.color = swatchHex(list[i]);
         val.style.fontFamily = (FONTS[look.font] || FONTS.system).stack;
         step.append(pctLabel, val);
@@ -854,6 +855,7 @@
       box.appendChild(rr);
     }
 
+    if (cell.c === 'ramp' || cell.c === 'heat') box.appendChild(baseColourPicker(cell));
     if (cell.c === 'ramp') box.appendChild(rampEditor(cell, f));
 
     if (f.icon) {
@@ -901,6 +903,34 @@
   }
 
   var activeBand = 0;
+
+  // Only the value climbs; this is the colour for the words around it.
+  function baseColourPicker(cell) {
+    var box = document.createElement('div');
+    box.className = 'base-picker';
+    var lab = document.createElement('label');
+    lab.className = 'field';
+    lab.textContent = 'Colour for the rest of the text';
+    var sws = document.createElement('div');
+    sws.className = 'swatches';
+    var opts = COLOURS.slice();
+    COLOURS.forEach(function (c) { if (c !== 'default' && c !== 'dim') opts.push('bold-' + c); });
+    opts.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sw' + ((cell.b || 'default') === c ? ' is-on' : '');
+      b.title = c;
+      b.style.background = swatchHex(c);
+      if (c.indexOf('bold-') === 0) { b.textContent = 'B'; b.style.color = '#10131a'; }
+      b.addEventListener('click', function () {
+        if (c === 'default') delete cell.b; else cell.b = c;
+        commit();
+      });
+      sws.appendChild(b);
+    });
+    box.append(lab, sws);
+    return box;
+  }
 
   // Ten bands, each with its own colour. Pick a band, then pick its colour.
   function rampEditor(cell, f) {
@@ -1365,12 +1395,15 @@
     // build the text grid exactly the way statusline.sh does
     var grid = state.rows.map(function (row) {
       if (isRuleRow(row)) return null;                 // drawn once widths are known
-      return row.map(function (cell) { return { text: previewCell(cell, p), cell: cell }; });
+      return row.map(function (cell) {
+        var raw = previewCell(cell, p);
+        return { text: raw, plain: stripMarks(raw), cell: cell };
+      });
     });
     var last = grid.map(function (row) {
       if (!row) return 0;                              // a rule row always shows
       var l = -1;
-      row.forEach(function (c, i) { if (c.text) l = i; });
+      row.forEach(function (c, i) { if (c.plain) l = i; });
       return l;
     });
     var ncols = grid.reduce(function (m, r) { return Math.max(m, r ? r.length : 0); }, 0);
@@ -1379,7 +1412,7 @@
       var w = 0;
       grid.forEach(function (row, r) {
         if (!row || last[r] < 0) return;
-        if (row[c] && row[c].text.length > w) w = row[c].text.length;
+        if (row[c] && row[c].plain.length > w) w = row[c].plain.length;
       });
       widths.push(state.align ? w : 0);
     }
@@ -1390,7 +1423,7 @@
       if (!row || last[r] < 0) return;
       var w = 0;
       for (var c = 0; c <= last[r]; c++) {
-        var t = (row[c] && row[c].text) || '';
+        var t = (row[c] && row[c].plain) || '';
         w += Math.max(widths[c] || 0, t.length) + (c > 0 ? 1 : 0);
       }
       if (w > wide) wide = w;
@@ -1415,17 +1448,17 @@
       var width = 0;
       for (var c = 0; c <= last[r]; c++) {
         if (c > 0) { frag.appendChild(document.createTextNode(' ')); width += 1; }
-        var item = row[c] || { text: '', cell: { c: 'default' } };
-        if (item.text) {
+        var item = row[c] || { text: '', plain: '', cell: { c: 'default' } };
+        if (item.plain) {
           var node = span(item.text, item.cell.c, p, item.cell.f, item.cell);
           node.dataset.r = r;
           node.dataset.c = c;
           frag.appendChild(node);
         }
-        width += item.text.length;
-        if (c < last[r] && widths[c] > item.text.length) {
-          frag.appendChild(document.createTextNode(' '.repeat(widths[c] - item.text.length)));
-          width += widths[c] - item.text.length;
+        width += item.plain.length;
+        if (c < last[r] && widths[c] > item.plain.length) {
+          frag.appendChild(document.createTextNode(' '.repeat(widths[c] - item.plain.length)));
+          width += widths[c] - item.plain.length;
         }
       }
       lines.push({ frag: frag, width: width });
@@ -1463,9 +1496,33 @@
     return w > 0 ? Math.max(20, Math.floor(inner / w)) : 80;
   }
 
+  var VS = '\u0002', VE = '\u0003';
+  function stripMarks(t) { return String(t).replace(/[\u0002\u0003]/g, ''); }
+
   function span(text, colour, p, fieldId, cell) {
+    // With a ramp or heat, only the marked value takes that colour; the rest of
+    // the cell keeps its own.
+    if ((colour === 'ramp' || colour === 'heat') && String(text).indexOf(VS) >= 0) {
+      var wrap = document.createElement('span');
+      var pre = text.slice(0, text.indexOf(VS));
+      var mid = text.slice(text.indexOf(VS) + 1, text.indexOf(VE));
+      var post = text.slice(text.indexOf(VE) + 1);
+      var f0 = FIELD[fieldId];
+      var vHex = colour === 'heat'
+        ? heatColour(f0 && f0.pct ? f0.pct(p) : 0)
+        : rampColour(cell || {}, f0 && f0.pct ? f0.pct(p) : 0);
+      var baseName = (cell && cell.b) || 'default';
+      if (pre) wrap.appendChild(plain(pre, baseName));
+      var v = document.createElement('span');
+      v.textContent = mid;
+      v.style.color = vHex;
+      wrap.appendChild(v);
+      if (post) wrap.appendChild(plain(post, baseName));
+      return wrap;
+    }
+
     var s = document.createElement('span');
-    s.textContent = text;
+    s.textContent = stripMarks(text);
     if (state.links && (fieldId === 'pr')) {
       s.style.textDecoration = 'underline';
       s.title = 'rendered as a clickable OSC 8 link';
@@ -1484,6 +1541,15 @@
       if (colour === 'dim') s.style.opacity = '.75';
     }
     return s;
+  }
+
+  function plain(text, colourName) {
+    var n = document.createElement('span');
+    n.textContent = text;
+    n.style.color = swatchHex(colourName);
+    if (colourName.indexOf('bold-') === 0) n.style.fontWeight = '700';
+    if (colourName === 'dim') n.style.opacity = '.75';
+    return n;
   }
 
   function warn() {

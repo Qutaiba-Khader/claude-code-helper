@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"ctx_bar","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"},{"f":"text","c":"grey","t":"|"},{"f":"tokens","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196"}],[{"f":"rule","c":"grey"}]]}'
+CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"ctx_bar","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"tokens","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"}],[{"f":"rule","c":"grey"}]]}'
 
 input=$(cat)
 
@@ -128,7 +128,10 @@ tok() {  # 41500 -> 41k
   if [ "$n" -ge 1000 ]; then printf '%dk' $(( n / 1000 )); else printf '%d' "$n"; fi
 }
 
-pct() { printf '%d%%' "${1%%.*}"; }
+# the value itself, marked so a ramp colours only this part of the cell
+VS=$'\002'; VE=$'\003'
+pct() { printf '%s%d%%%s' "$VS" "${1%%.*}" "$VE"; }
+val() { printf '%s%s%s' "$VS" "$1" "$VE"; }
 
 ctxsize() {  # 1000000 -> 1M, 200000 -> 200k
   local n=${1:-0}
@@ -219,16 +222,16 @@ render() {
     ctx_size)  [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null && ctxsize "$p_ctx" ;;
     tokens)
       [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null || return
-      printf '%s/%s (%d%%)' "$(tok "$p_in")" "$(tok "$p_ctx")" $(( p_in * 100 / p_ctx )) ;;
+      printf '%s/%s (%s)' "$(tok "$p_in")" "$(tok "$p_ctx")" "$(val "$(( p_in * 100 / p_ctx ))%")" ;;
     tokens_plain)
       [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null || return
-      printf '%s/%s' "$(tok "$p_in")" "$(tok "$p_ctx")" ;;
+      printf '%s/%s' "$(val "$(tok "$p_in")")" "$(tok "$p_ctx")" ;;
     ctx_pct)   [ -n "$p_ctxpct" ]  && printf '%s%s' "$(aff 'ctx ')" "$(pct "$p_ctxpct")" ;;
     tokens_pct)
       # the percentage on its own, computed from the token counts so it works
       # even before used_percentage is populated
       if [ -n "$p_ctxpct" ]; then printf '%s' "$(pct "$p_ctxpct")"
-      elif [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null; then printf '%d%%' $(( p_in * 100 / p_ctx ))
+      elif [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null; then val "$(( p_in * 100 / p_ctx ))%"
       fi ;;
     ctx_left)  [ -n "$p_ctxleft" ] && printf '%s%s' "$(pct "$p_ctxleft")" "$(aff ' left')" ;;
     ctx_bar)
@@ -238,7 +241,7 @@ render() {
       for ((i=0;i<10;i++)); do
         if [ $i -lt $filled ]; then bar+=$(ico '▰' '#'); else bar+=$(ico '▱' '.'); fi
       done
-      printf '%s' "$bar" ;;
+      val "$bar" ;;
     out_tokens) [ "${p_out:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff "$(ico '↑' 'out') ")" "$(tok "$p_out")" ;;
     cache_read)  [ "${p_cread:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cache ')" "$(tok "$p_cread")" ;;
     cache_write) [ "${p_cwrite:-0}" -gt 0 ] 2>/dev/null && printf '%s%s' "$(aff 'cw ')" "$(tok "$p_cwrite")" ;;
@@ -289,7 +292,7 @@ heatval() {
 
 # Length of a cell as the terminal sees it: escape sequences take no columns.
 vislen() {
-  local t=$1 out=""
+  local t=${1//[$'\002\003']/} out=""
   while [[ $t == *$'\033'* ]]; do
     out+=${t%%$'\033'*}
     t=${t#*$'\033'}
@@ -308,14 +311,14 @@ vislen() {
 mapfile -t CELLS < <(printf '%s' "$CONFIG" | jq -r '
   .rows // [] | to_entries[] as $r | $r.value | to_entries[] |
   [ ($r.key|tostring), (.value.f // ""), (.value.c // ""), (.value.t // ""),
-    (if .value.i == false then "0" else "1" end), (.value.r // "") ]
+    (if .value.i == false then "0" else "1" end), (.value.r // ""), (.value.b // "") ]
   | join("\u001f")' 2>/dev/null)
 
-declare -A TXT FMT LEN
+declare -A TXT FMT LEN BASE
 declare -a COUNT RULEROW RULEFIT
 nrows=0; ncols=0
 for line in "${CELLS[@]}"; do
-  IFS=$'\037' read -r r f c t ci ramp <<<"$line"
+  IFS=$'\037' read -r r f c t ci ramp b <<<"$line"
   [ -n "$f" ] || continue
   # cells are laid out in the order they appear, gaps closed up per row
   idx=${COUNT[$r]:-0}; COUNT[$r]=$(( idx + 1 ))
@@ -331,9 +334,16 @@ for line in "${CELLS[@]}"; do
   txt=$(render "$f" "$t" "$ci")
   TXT[$r,$idx]=$txt
   LEN[$r,$idx]=$(vislen "$txt")
-  if [ "$c" = "heat" ]; then FMT[$r,$idx]=$(heat "$(heatval "$f")")
-  elif [ "$c" = "ramp" ] && [ -n "$ramp" ]; then FMT[$r,$idx]=$(ramp_colour "$ramp" "$(heatval "$f")")
-  else FMT[$r,$idx]=$(colour "$c"); fi
+  if [ "$c" = "heat" ]; then
+    FMT[$r,$idx]=$(heat "$(heatval "$f")")
+    BASE[$r,$idx]=$(colour "${b:-default}")
+  elif [ "$c" = "ramp" ] && [ -n "$ramp" ]; then
+    FMT[$r,$idx]=$(ramp_colour "$ramp" "$(heatval "$f")")
+    BASE[$r,$idx]=$(colour "${b:-default}")
+  else
+    FMT[$r,$idx]=$(colour "$c")
+    BASE[$r,$idx]=${FMT[$r,$idx]}
+  fi
   [ $(( r + 1 )) -gt $nrows ] && nrows=$(( r + 1 ))
   [ $(( idx + 1 )) -gt $ncols ] && ncols=$(( idx + 1 ))
 done
@@ -364,6 +374,23 @@ done
 # rest of them.
 SEP=' '
 SEPW=1
+
+# emit <cell> honouring the value markers. $2 is the format for the value,
+# $3 the format for everything around it.
+emit() {
+  local t=$1 vfmt=$2 base=$3 pre mid post
+  case "$t" in
+    *$'\002'*)
+      pre=${t%%$'\002'*}
+      mid=${t#*$'\002'}; mid=${mid%%$'\003'*}
+      post=${t#*$'\003'}
+      [ -n "$pre" ]  && printf '%s%s%s' "$base" "$pre" "$RST"
+      printf '%s%s%s' "$vfmt" "$mid" "$RST"
+      [ -n "$post" ] && printf '%s%s%s' "$base" "$post" "$RST"
+      ;;
+    *) printf '%s%s%s' "$vfmt" "$t" "$RST" ;;
+  esac
+}
 
 wide=0
 for ((r=0; r<nrows; r++)); do
@@ -403,7 +430,7 @@ for ((r=0; r<nrows; r++)); do
     [ $c -gt 0 ] && printf '%s' "$SEP"
     t=${TXT[$r,$c]}
     tl=${LEN[$r,$c]:-0}
-    [ -n "$t" ] && printf '%s%s%s' "${FMT[$r,$c]}" "$t" "$RST"
+    [ -n "$t" ] && emit "$t" "${FMT[$r,$c]}" "${BASE[$r,$c]}"
     if [ $c -lt "${LAST[$r]}" ] && [ ${W[$c]} -gt "$tl" ]; then
       printf '%*s' $(( W[$c] - tl )) ''
     fi

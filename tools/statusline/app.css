@@ -469,3 +469,5 @@
 .ramp-strip { grid-template-columns: repeat(10, 1fr); gap: 2px; }
 .band { height: 42px; }
 .band span { font-size: .625rem; }
+
+.base-picker { display: grid; gap: 6px; margin-top: 12px; }

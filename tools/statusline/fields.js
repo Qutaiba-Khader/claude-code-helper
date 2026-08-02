@@ -18,7 +18,11 @@
   // an affix (glyph or word) is dropped when the cell has its icon turned off
   function af(cell, text) { return (cell && cell.i === false) ? '' : text; }
   function tok(n) { n = n || 0; return n >= 1000 ? Math.floor(n / 1000) + 'k' : String(n); }
-  function pct(v) { return Math.floor(Number(v)) + '%'; }
+  // \u0002 … \u0003 wraps the part that carries the value, so a ramp colours
+  // only that and the rest of the cell keeps its own colour.
+  var VS = '\u0002', VE = '\u0003';
+  function val(t) { return VS + t + VE; }
+  function pct(v) { return val(Math.floor(Number(v)) + '%'); }
   function ctxsize(n) {
     if (!n) return '';
     if (n >= 1000000 && n % 1000000 === 0) return (n / 1000000) + 'M';
@@ -130,7 +134,7 @@
       preview: function (p) {
         var c = get(p, 'context_window'); if (!c || !c.context_window_size) return '';
         return tok(c.total_input_tokens) + '/' + tok(c.context_window_size) +
-               ' (' + Math.floor(c.total_input_tokens * 100 / c.context_window_size) + '%)';
+               ' (' + val(Math.floor(c.total_input_tokens * 100 / c.context_window_size) + '%') + ')';
       } },
     { id: 'tokens_plain', group: 'Model', label: 'tokens used/max', hint: 'Without the percentage', heat: true,
       pct: function (p) { return get(p, 'context_window.used_percentage'); },
@@ -146,7 +150,7 @@
         if (v !== undefined && v !== null) return pct(v);
         var c = get(p, 'context_window');
         if (c && c.context_window_size) {
-          return Math.floor(c.total_input_tokens * 100 / c.context_window_size) + '%';
+          return val(Math.floor(c.total_input_tokens * 100 / c.context_window_size) + '%');
         }
         return '';
       } },
@@ -171,7 +175,7 @@
         if (v === undefined || v === null) return '';
         var filled = Math.floor(Math.floor(v) * 10 / 100), s = '';
         for (var i = 0; i < 10; i++) s += (i < filled) ? ico(o, '▰', '#') : ico(o, '▱', '.');
-        return s;
+        return val(s);
       } },
     { id: 'out_tokens', group: 'Model', label: 'output tokens', hint: 'From the most recent response',
       icon: '↑',
@@ -296,6 +300,7 @@
 
   global.CCH_FIELDS = FIELDS;
   global.CCH_FIELD = BY_ID;
+  global.CCH_MARK = { VS: VS, VE: VE };
   global.CCH_UTIL = { tok: tok, pct: pct, ctxsize: ctxsize, home: home,
                       countdown: countdown, dur: dur, get: get };
 })(window);
