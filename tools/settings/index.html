@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>settings.json explorer — Claude Code Helper</title>
+<meta name="description" content="Browse every Claude Code setting with its type, default and scope, and assemble a settings.json you can paste.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙</text></svg>">
+<link rel="stylesheet" href="../../assets/css/base.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="../../"><span class="dot"></span> Claude Code Helper</a>
+    <nav>
+      <a href="../../">All tools</a>
+      <a href="../statusline/">Status line</a>
+      <a href="../../docs/">Docs</a>
+      <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
+      <button class="btn btn-ghost btn-sm theme-toggle" id="theme" title="Toggle light and dark" aria-label="Toggle light and dark"><span class="tt-disc"></span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap explorer">
+
+  <div class="page-head">
+    <div class="page-head-text">
+      <h1>settings.json explorer</h1>
+      <p>Every setting, what it does, and which file it belongs in. Pick some, get a file.</p>
+    </div>
+    <div class="page-head-actions">
+      <select id="scope" aria-label="Which settings file">
+        <option value="user">~/.claude/settings.json</option>
+        <option value="project">.claude/settings.json</option>
+        <option value="local">.claude/settings.local.json</option>
+        <option value="managed">managed-settings.json</option>
+      </select>
+      <button class="btn btn-sm" id="share">Copy share link</button>
+      <button class="btn btn-sm" id="clear">Clear</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ 1 · BROWSE ══════════════ -->
+  <p class="eyebrow"><span class="n">01</span> Browse</p>
+
+  <div class="workbench">
+
+    <aside class="rail">
+      <div class="rail-head">
+        <input type="text" id="filter" placeholder="Search settings" aria-label="Search settings">
+        <label class="check rail-check"><input type="checkbox" id="hideManaged" checked> Hide managed-only</label>
+      </div>
+      <div class="rail-body" id="list"></div>
+      <p class="rail-foot" id="count"></p>
+    </aside>
+
+    <div class="stage">
+      <div id="detail" class="detail-empty">
+        <p>Pick a setting on the left to read what it does and add it to your file.</p>
+      </div>
+
+      <div class="chosen">
+        <div class="chosen-head">
+          <span class="chosen-title">In your file</span>
+          <span class="chosen-hint" id="chosenCount">nothing yet</span>
+        </div>
+        <div id="chosen"></div>
+      </div>
+    </div>
+
+    <aside class="viewer">
+      <div class="filewin">
+        <div class="filewin-bar">
+          <span class="fw-dots"><i></i><i></i><i></i></span>
+          <span class="fw-title" id="fileTitle">settings.json</span>
+        </div>
+        <pre class="filewin-body" id="json"></pre>
+      </div>
+      <div class="scope-card" id="scopeCard"></div>
+    </aside>
+  </div>
+
+  <!-- ══════════════ 2 · APPLY ══════════════ -->
+  <p class="eyebrow"><span class="n">02</span> Apply</p>
+
+  <section class="panel out-panel">
+    <header>
+      <div class="tabs" role="tablist">
+        <button class="tab is-active" data-tab="prompt" role="tab">Prompt for Claude</button>
+        <button class="tab" data-tab="json" role="tab">Raw JSON</button>
+        <button class="tab" data-tab="jq" role="tab">jq merge</button>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn btn-primary btn-sm" id="copyOut">Copy</button>
+    </header>
+    <div class="body">
+      <p class="hint" id="outHelp"></p>
+      <pre class="code" id="out"></pre>
+    </div>
+  </section>
+
+  <!-- ══════════════ 3 · REFERENCE ══════════════ -->
+  <p class="eyebrow"><span class="n">03</span> Reference</p>
+
+  <div class="reference">
+    <div class="panel">
+      <header>Which file wins</header>
+      <div class="body">
+        <ol class="precedence" id="precedence"></ol>
+        <p class="hint">Highest first. A key set in a managed file cannot be overridden below it.</p>
+      </div>
+    </div>
+    <div class="panel">
+      <header>When changes take effect</header>
+      <div class="body">
+        <p class="hint" style="margin-top:0">
+          <strong>Live</strong> — <code>permissions</code>, <code>hooks</code>,
+          <code>apiKeyHelper</code> reload as soon as the file is saved.
+        </p>
+        <p class="hint">
+          <strong>Restart</strong> — <code>model</code> and <code>outputStyle</code> are read once
+          at startup. Everything else: assume a restart.
+        </p>
+        <p class="hint">
+          <code>/status</code> shows what is active, <code>/config</code> edits it,
+          <code>/doctor</code> explains why something is not applying.
+        </p>
+      </div>
+    </div>
+    <div class="panel">
+      <header>Environment variables</header>
+      <div class="body">
+        <p class="hint" style="margin-top:0">Set these under the <code>env</code> key, or in your shell.</p>
+        <div class="envlist" id="envlist"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span>MIT licensed. Not affiliated with Anthropic.</span>
+    <span class="spacer"></span>
+    <a href="https://code.claude.com/docs/en/settings">Official settings docs</a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper">github.com/Qutaiba-Khader/claude-code-helper</a>
+  </div>
+</footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="../../assets/js/ui.js"></script>
+<script src="settings-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

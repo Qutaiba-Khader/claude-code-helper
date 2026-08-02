@@ -118,6 +118,8 @@
     t.style.setProperty('--term-bg', s.bg);
     t.style.setProperty('--term-fg', s.fg);
     t.style.setProperty('--term-caret', s.n[2]);
+    t.style.setProperty('--term-accent', s.n[5]);
+    t.style.setProperty('--term-dim', s.b[0]);
     t.style.setProperty('--term-font', (FONTS[look.font] || FONTS.system).stack);
     t.style.setProperty('--term-size', look.size + 'px');
     ['.termwin-body', '.termwin-bar'].forEach(function (sel) {
@@ -716,6 +718,64 @@
     catch (e) { return ''; }
   }
 
+  // Reproduce what Claude Code actually prints: the startup banner, the input
+  // area framed by two rules, then the status line row, then the footer badges.
+  function renderChrome() {
+    var p = currentSample();
+    var cols = termCols();
+
+    var banner = $('#termBanner');
+    if (banner) {
+      var model = (p.model && p.model.display_name) || 'Opus 5';
+      var id = (p.model && p.model.id) || '';
+      if ((id.indexOf('[1m]') >= 0 || /-1m/.test(id)) && model.indexOf('1M') < 0) {
+        model += ' (1M context)';
+      }
+      var effort = p.effort && p.effort.level;
+      var dir = (p.workspace && p.workspace.current_dir) || p.cwd || '';
+
+      banner.textContent = '';
+      [['           ', 'Claude Code v' + (p.version || '2.1.220'), 'v'],
+       [' \u2590\u259B\u2588\u2588\u2588\u259C\u258C   ', model + (effort ? ' with ' + effort + ' effort' : ''), 'm'],
+       ['\u259D\u259C\u2588\u2588\u2588\u2588\u2588\u259B\u2598  ', p.rate_limits ? 'Claude Max' : 'Claude Pro', 'p'],
+       ['  \u2598\u2598 \u259D\u259D    ', dir, 'd']
+      ].forEach(function (row) {
+        var line = document.createElement('span');
+        line.className = 'tsl';
+        line.append(el('b', 'logo', row[0]), el('span', 'bi ' + row[2], row[1]));
+        banner.appendChild(line);
+      });
+    }
+
+    var rule = '\u2500'.repeat(Math.max(8, cols));
+    var r1 = $('#termRule1'), r2 = $('#termRule2');
+    if (r1) r1.textContent = rule;
+    if (r2) r2.textContent = rule;
+
+    // ⏵⏵ accept edits on (shift+tab to cycle) · ← for agents
+    var badges = $('#termBadges');
+    if (badges) {
+      badges.textContent = '';
+      var line = document.createElement('span');
+      line.className = 'bline';
+      line.append(
+        el('b', 'mode', '\u23F5\u23F5 accept edits on'),
+        el('span', 'muted', ' (shift+tab to cycle) \u00B7 \u2190 for agents')
+      );
+      var rc = document.createElement('span');
+      rc.className = 'bline rc';
+      rc.textContent = '/rc';
+      badges.append(line, rc);
+    }
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = text;
+    return n;
+  }
+
   function renderPreview() {
     var p = currentSample();
     var term = $('#term');
@@ -790,6 +850,7 @@
       term.appendChild(span((state.icons ? '─' : '-').repeat(wide), state.sepColor, p));
     }
     warn();
+    renderChrome();
   }
 
   // Roughly how many columns the preview box is showing, for the `fit` option.
@@ -1109,6 +1170,12 @@
     });
 
     update();
+
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(function () { renderChrome(); });
+      ro.observe(document.querySelector('.termwin-body'));
+    }
+    window.addEventListener('resize', renderChrome);
 
     // the runtime script is the single source of truth — fetch it, don't inline it
     fetch('statusline.sh', { cache: 'no-cache' })

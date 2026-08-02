@@ -8,16 +8,24 @@
       "icon": "▚",
       "status": "live",
       "href": "tools/statusline/",
-      "tags": ["settings", "terminal", "no-install"]
+      "tags": [
+        "settings",
+        "terminal",
+        "no-install"
+      ]
     },
     {
       "id": "settings",
       "name": "settings.json explorer",
-      "tagline": "Browse every Claude Code setting with its type, default and scope, and assemble a settings.json you can paste.",
+      "tagline": "Browse all 80 settings with type, default and scope, then assemble a settings.json you can merge.",
       "icon": "⚙",
-      "status": "planned",
-      "href": null,
-      "tags": ["settings"]
+      "status": "live",
+      "href": "tools/settings/",
+      "tags": [
+        "settings",
+        "reference",
+        "no-install"
+      ]
     },
     {
       "id": "hooks",
@@ -26,7 +34,9 @@
       "icon": "⤳",
       "status": "planned",
       "href": null,
-      "tags": ["automation"]
+      "tags": [
+        "automation"
+      ]
     },
     {
       "id": "skills",
@@ -35,7 +45,9 @@
       "icon": "◆",
       "status": "planned",
       "href": null,
-      "tags": ["skills"]
+      "tags": [
+        "skills"
+      ]
     },
     {
       "id": "mcp",
@@ -44,7 +56,9 @@
       "icon": "⇄",
       "status": "planned",
       "href": null,
-      "tags": ["mcp"]
+      "tags": [
+        "mcp"
+      ]
     },
     {
       "id": "subagents",
@@ -53,7 +67,9 @@
       "icon": "❖",
       "status": "planned",
       "href": null,
-      "tags": ["agents"]
+      "tags": [
+        "agents"
+      ]
     }
   ]
 }

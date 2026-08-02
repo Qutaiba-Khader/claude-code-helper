@@ -114,42 +114,42 @@
   background: color-mix(in srgb, var(--term-fg, #dfe4ee) 24%, transparent);
   border-radius: 4px;
 }
-.term-scroll { display: block; margin-bottom: 10px; }
-.tsl {
-  display: block;
+.tsl, .term, .term-rule, .term-prompt, .term-badges {
   font-family: var(--term-font, var(--mono));
-  font-size: var(--term-size, 13px); line-height: 1.5;
-  color: var(--term-fg, #dfe4ee); white-space: pre;
-}
-.tsl.d { opacity: .42; }
-.tsl .p { color: var(--term-caret, #7cc98d); font-weight: 400; }
-
-.term {
-  font-family: var(--term-font, var(--mono));
-  font-size: var(--term-size, 13px);
+  font-size: var(--term-size, 12px);
   line-height: 1.5;
+  white-space: pre;
   color: var(--term-fg, #dfe4ee);
-  white-space: pre; min-height: 1.5em;
 }
-.term .empty { opacity: .45; font-style: italic; }
 
-/* the prompt box Claude Code draws under the status line */
-.term-input { margin-top: 10px; }
-.ti-box {
-  display: block;
-  font-family: var(--term-font, var(--mono));
-  font-size: var(--term-size, 13px); line-height: 1.5;
-  color: var(--term-fg, #dfe4ee);
-  border: 1px solid color-mix(in srgb, var(--term-fg, #dfe4ee) 22%, transparent);
-  border-radius: 4px; padding: 5px 8px;
-}
-.ti-box .p { color: var(--term-caret, #7cc98d); }
+/* the startup banner */
+.term-banner { display: block; margin-bottom: 2px; }
+.tsl { display: block; }
+.tsl .logo { color: var(--term-accent, #d98a52); font-weight: 400; }
+.tsl .bi { color: var(--term-fg, #dfe4ee); }
+.tsl .bi.v, .tsl .bi.p, .tsl .bi.d { opacity: .55; }
+
+/* input area: rule, prompt, rule */
+.term-rule { display: block; opacity: .3; overflow: hidden; }
+.term-prompt { display: block; }
+.term-prompt .pc { color: var(--term-fg, #dfe4ee); opacity: .85; }
 .ti-cursor {
-  display: inline-block; width: .55em; height: 1em; vertical-align: text-bottom;
-  background: var(--term-fg, #dfe4ee); opacity: .8;
+  display: inline-block; width: 1ch; height: 1em; vertical-align: text-bottom;
+  background: var(--term-fg, #dfe4ee); opacity: .7;
   animation: tiblink 1.1s steps(1, end) infinite;
 }
-@keyframes tiblink { 0%, 50% { opacity: .8; } 50.01%, 100% { opacity: 0; } }
+@keyframes tiblink { 0%, 50% { opacity: .7; } 50.01%, 100% { opacity: 0; } }
+
+/* the status line row — indented two columns, exactly as Claude Code renders it */
+.term { display: block; padding-left: 2ch; min-height: 1.5em; margin-top: 2px; }
+.term .empty { opacity: .45; font-style: italic; }
+
+/* the built-in footer badges below it */
+.term-badges { display: block; padding-left: 2ch; margin-top: 2px; }
+.term-badges .bline { display: block; opacity: .5; }
+.term-badges .mode { color: var(--term-caret, #7cc98d); font-weight: 400; }
+.term-badges .muted { opacity: .75; }
+.term-badges .rc { text-align: right; opacity: .32; }
 
 /* ---------- viewer controls ---------- */
 .viewer-controls {
@@ -173,9 +173,15 @@
   font-size: .78125rem; color: var(--fg-3);
   padding-left: 18px; position: relative; line-height: 1.5;
 }
-.warn-list li::before { content: '·'; position: absolute; left: 6px; color: var(--fg-3); }
+.warn-list li::before {
+  content: ''; position: absolute; left: 4px; top: .62em;
+  width: 6px; height: 1px; background: var(--line-2);
+}
 .warn-list li.hot { color: var(--warn); }
-.warn-list li.hot::before { content: '!'; color: var(--warn); font-weight: 700; }
+.warn-list li.hot::before {
+  content: '!'; width: auto; height: auto; background: none; top: 0;
+  color: var(--warn); font-weight: 700; font-family: var(--mono);
+}
 
 /* ---------- rows ---------- */
 .rows-head {

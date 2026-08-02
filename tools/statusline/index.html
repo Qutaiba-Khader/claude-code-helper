@@ -73,17 +73,15 @@
           <span class="tw-title" id="termTitle">claude</span>
         </div>
         <div class="termwin-body">
-          <div class="term-scroll" aria-hidden="true">
-            <span class="tsl"><b class="p">&gt;</b> add a status line</span>
-            <span class="tsl d">⏺ Reading tools/statusline/app.js</span>
-            <span class="tsl d">⏺ Update(app.js)</span>
-            <span class="tsl d">  ⎿ Updated with 41 additions and 7 removals</span>
-            <span class="tsl">⏺ Done — the layout is wired up.</span>
-          </div>
+          <!-- the startup banner Claude Code prints -->
+          <div class="term-banner" id="termBanner" aria-hidden="true"></div>
+          <!-- input area: a rule, the prompt, a rule -->
+          <div class="term-rule" id="termRule1" aria-hidden="true"></div>
+          <div class="term-prompt" aria-hidden="true"><span class="pc">❯</span> <span class="ti-cursor"></span></div>
+          <div class="term-rule" id="termRule2" aria-hidden="true"></div>
+          <!-- your status line, in its own row above the footer badges -->
           <div class="term" id="term" aria-label="Status line preview"></div>
-          <div class="term-input" aria-hidden="true">
-            <span class="ti-box"><b class="p">&gt;</b> <span class="ti-cursor"></span></span>
-          </div>
+          <div class="term-badges" id="termBadges" aria-hidden="true"></div>
         </div>
       </div>
 
