@@ -471,3 +471,8 @@
 .band span { font-size: .625rem; }
 
 .base-picker { display: grid; gap: 6px; margin-top: 12px; }
+
+/* a line owns its row: its chip is a label, not something to drag out */
+.chip.no-drag { cursor: default; }
+.chip.no-drag .grip { display: none; }
+.row.is-rule.drop-target { border-color: var(--line); background: var(--bg-2); }

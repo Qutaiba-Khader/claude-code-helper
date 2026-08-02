@@ -351,7 +351,7 @@
 
     // ---- structural ----
     { id: 'rule', group: 'Custom', label: 'horizontal line', isRule: true,
-      hint: 'A line across the status line. Put it in a row of its own.',
+      hint: 'A divider across the status line. It gets a row to itself.',
       preview: function () { return ''; } },
 
     // ---- literal ----

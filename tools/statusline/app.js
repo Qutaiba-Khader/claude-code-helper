@@ -193,7 +193,8 @@
   function RULE(c) { return { f: 'rule', c: c || 'grey' }; }
   // every percentage-carrying field in a preset is coloured by value
   function BYVALUE(f) { return { f: f, c: 'ramp', r: RAMP_DEFAULT.join(','), b: 'dim' }; }
-  function isRuleRow(row) { return row.length === 1 && row[0].f === 'rule'; }
+  // A line is a divider: it owns its row and takes no other items.
+  function isRuleRow(row) { return !!(row && row[0] && row[0].f === 'rule'); }
 
   // ---------------------------------------------------------------- presets
   var PRESETS = {
@@ -550,7 +551,9 @@
 
       if (isRuleRow(row)) {
         el.classList.add('is-rule');
-        chips.appendChild(makeChip(row[0], r, 0));
+        var rchip = makeChip(row[0], r, 0);
+        rchip.classList.add('no-drag');
+        chips.appendChild(rchip);
         var preview = document.createElement('span');
         preview.className = 'rule-preview';
         preview.style.background = swatchHex(row[0].c || 'grey');
@@ -1104,8 +1107,24 @@
     });
   }
   function addCell(fieldId, r, at) {
+    if (fieldId === 'rule') {            // a line always arrives as its own row
+      state.rows.push([RULE()]);
+      selected = { r: state.rows.length - 1, c: 0 };
+      commit();
+      return;
+    }
     if (!state.rows.length) state.rows.push([]);
     if (r === undefined || r === null || !state.rows[r]) r = state.rows.length - 1;
+    // never land in a line row: fall back to the last row that can hold items
+    if (isRuleRow(state.rows[r])) {
+      var target = -1;
+      for (var i = 0; i < state.rows.length; i++) {
+        if (!isRuleRow(state.rows[i])) target = i;
+      }
+      if (target < 0) { state.rows.push([]); target = state.rows.length - 1; }
+      r = target;
+      at = null;
+    }
     var cell = { f: fieldId, c: defaultColour(fieldId) };
     if (cell.c === 'ramp') cell.r = defaultRamp().join(',');
     if (fieldId === 'text') cell.t = 'label';
@@ -1130,6 +1149,7 @@
     commit();
   }
   function moveCell(from, to) {
+    if (isRuleRow(state.rows[to.r] || []) || isRuleRow(state.rows[from.r] || [])) return;
     var cell = state.rows[from.r][from.c];
     state.rows[from.r].splice(from.c, 1);
     var idx = to.c;
@@ -1178,6 +1198,7 @@
 
   document.addEventListener('pointerdown', function (e) {
     var chip = e.target.closest('.chip');
+    if (chip && chip.classList.contains('no-drag')) chip = null;
     var pf = e.target.closest('.pfield');
     var grip = e.target.closest('.rgrip');
     if (e.target.closest('.x') || e.button === 1 || e.button === 2) return;
@@ -1310,6 +1331,7 @@
     }
 
     var r = +hit.dataset.row;
+    if (isRuleRow(state.rows[r] || [])) return null;   // a line takes nothing
     var chips = Array.prototype.slice.call(hit.querySelectorAll('.chip'));
     var idx = chips.length;
     for (var i = 0; i < chips.length; i++) {
@@ -1327,8 +1349,8 @@
     var r = +chip.dataset.row, c = +chip.dataset.col, handled = true;
     if (e.key === 'ArrowLeft' && c > 0) moveCell({ r: r, c: c }, { r: r, c: c - 1 });
     else if (e.key === 'ArrowRight' && c < state.rows[r].length - 1) moveCell({ r: r, c: c }, { r: r, c: c + 2 });
-    else if (e.key === 'ArrowUp' && r > 0) moveCell({ r: r, c: c }, { r: r - 1, c: state.rows[r - 1].length });
-    else if (e.key === 'ArrowDown' && r < state.rows.length - 1) moveCell({ r: r, c: c }, { r: r + 1, c: state.rows[r + 1].length });
+    else if (e.key === 'ArrowUp' && r > 0 && !isRuleRow(state.rows[r - 1])) moveCell({ r: r, c: c }, { r: r - 1, c: state.rows[r - 1].length });
+    else if (e.key === 'ArrowDown' && r < state.rows.length - 1 && !isRuleRow(state.rows[r + 1])) moveCell({ r: r, c: c }, { r: r + 1, c: state.rows[r + 1].length });
     else if (e.key === 'Backspace' || e.key === 'Delete') removeCell(r, c);
     else handled = false;
     if (handled) e.preventDefault();
