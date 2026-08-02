@@ -406,3 +406,10 @@
   border-style: solid; border-color: var(--accent); background: var(--bg);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
 }
+
+/* a line is a row of its own — it shows what it will draw */
+.rows-align { font-size: .75rem; margin-right: 4px; }
+.row.is-rule { min-height: 38px; }
+.rule-preview {
+  flex: 1; height: 2px; border-radius: 1px; opacity: .8; min-width: 40px;
+}

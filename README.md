@@ -85,17 +85,23 @@ you can hand-edit the layout later without regenerating anything, and the instal
 ship ~300 bytes of config instead of the whole script.
 
 ```
-CONFIG='{"v":1,"rule":true,"align":true,"icons":true,"ruleColor":"grey",
-         "fit":false,"links":false,
+CONFIG='{"v":2,"align":true,"icons":true,"links":false,
          "st":{"padding":0,"refresh":0,"hideVim":false},
          "rows":[[{"f":"userhost","c":"bold-green"},
                   {"f":"text","c":"grey","t":"|"},
-                  {"f":"cwd","c":"bold-blue"}], …]}'
+                  {"f":"cwd","c":"bold-blue"}],
+                 [{"f":"rule","c":"grey"}]]}'
 ```
 
-**There is no divider setting.** Cells are joined by a single space; a bar, a dot or anything
-else is a `text` cell you place in the row, so it can be coloured and moved like any other
-field. Type it straight into a row, or take a glyph from the Symbols palette.
+**Almost nothing is a global setting.** Cells are joined by a single space, so:
+
+- a **divider** is a `text` cell you place in the row — type it in, or take a glyph from Symbols
+- the **underline** is a row of its own, `[{"f":"rule","c":"grey"}]`, so it can go anywhere in the
+  stack rather than only at the bottom, and it carries its own colour and an optional
+  `"t":"fit"` to stretch to `$COLUMNS`
+
+Both can be coloured, moved and deleted exactly like a field. What is left global is only what
+genuinely applies to everything: column alignment, Unicode icons and OSC 8 links.
 
 Requirements: `jq` on `PATH`, plus `git` if you use the branch field.
 

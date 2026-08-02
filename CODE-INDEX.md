@@ -68,7 +68,7 @@ that line swapped, and `install.sh` does the same substitution server-side.
 | `tilde(dir)` | `$HOME` → `~`. |
 | `render(field, text, showicon)` | **The field catalogue.** One `case` arm per field id. `aff <text>` wraps any leading glyph or word so it disappears when the cell's icon flag is off. Adding a field means adding an arm here *and* an entry in `fields.js`. |
 | `heatval(field)` | Which percentage a `heat`-coloured field grades against. |
-| *(layout block)* | Builds the `TXT`/`FMT` maps, drops all-empty rows, trims trailing empty cells, computes per-column widths, prints, then draws the rule sized to the widest row. |
+| *(layout block)* | Builds the `TXT`/`FMT`/`LEN` maps, marks rule rows (`RULEROW`/`RULEFIT`), drops all-empty rows, trims trailing empty cells, computes per-column widths from content rows only, works out the widest row, then prints — a rule row draws a line at that width, or at `$COLUMNS` when it is set to fit. |
 
 ### `install.sh` — one-line installer
 `curl … | bash -s -- <base64url-config>`. Decodes and validates the config, downloads
@@ -170,6 +170,8 @@ State is just `{ scope, chosen: { "<dotted.key>": value } }`; everything else is
    in `statusline.sh`. Add to both.
 3. **`CONFIG` must stay one line** matching `/^CONFIG='.*'$/m` — the builder, the installer and
    any hand-edit all rely on that.
+3b. **A rule is a row, not a setting.** `[{"f":"rule"}]` — it takes no part in column widths and
+   is never dropped for being empty.
 4. **The config is the whole layout.** No state lives anywhere else; that is what makes the share
    link and the short installer possible.
 5. **jq's `//` swallows `false`.** Never write `.someBool // true`.

@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":1,"rule":true,"align":true,"icons":true,"ruleColor":"grey","rows":[[{"f":"userhost","c":"bold-green"},{"f":"text","c":"grey","t":"|"},{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"heat"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"heat"}]]}'
+CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"userhost","c":"bold-green"},{"f":"text","c":"grey","t":"|"},{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"heat"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"heat"}],[{"f":"rule","c":"grey"}]]}'
 
 input=$(cat)
 
@@ -66,12 +66,11 @@ IFS=$'\037' read -r \
 [ -n "$p_cwd" ] || p_cwd="$PWD"
 
 # --- config -> shell vars --------------------------------------------------
-IFS=$'\037' read -r cfg_rule cfg_align cfg_icons cfg_fit cfg_links cfg_rulecol <<<"$(
+IFS=$'\037' read -r cfg_align cfg_icons cfg_links <<<"$(
   printf '%s' "$CONFIG" | jq -j '
     def b(d): if . == null then d else . end | tostring;
-    [ (.rule | b(false)), (.align | b(true)), (.icons | b(true)),
-      (.fit | b(false)), (.links | b(false)),
-      (.ruleColor // "grey") ] | join("\u001f")' 2>/dev/null
+    [ (.align | b(true)), (.icons | b(true)), (.links | b(false)) ]
+    | join("\u001f")' 2>/dev/null
 )"
 
 RST=$'\033[0m'
@@ -309,13 +308,22 @@ mapfile -t CELLS < <(printf '%s' "$CONFIG" | jq -r '
   | join("\u001f")' 2>/dev/null)
 
 declare -A TXT FMT LEN
-declare -a COUNT
+declare -a COUNT RULEROW RULEFIT
 nrows=0; ncols=0
 for line in "${CELLS[@]}"; do
   IFS=$'\037' read -r r f c t ci ramp <<<"$line"
   [ -n "$f" ] || continue
   # cells are laid out in the order they appear, gaps closed up per row
   idx=${COUNT[$r]:-0}; COUNT[$r]=$(( idx + 1 ))
+  if [ "$f" = "rule" ]; then
+    RULEROW[$r]=1
+    [ "$t" = "fit" ] && RULEFIT[$r]=1
+    TXT[$r,$idx]=''
+    LEN[$r,$idx]=0
+    FMT[$r,$idx]=$(colour "${c:-grey}")
+    [ $(( r + 1 )) -gt $nrows ] && nrows=$(( r + 1 ))
+    continue
+  fi
   txt=$(render "$f" "$t" "$ci")
   TXT[$r,$idx]=$txt
   LEN[$r,$idx]=$(vislen "$txt")
@@ -330,6 +338,7 @@ done
 declare -a LAST
 for ((r=0; r<nrows; r++)); do
   LAST[$r]=-1
+  if [ "${RULEROW[$r]:-0}" = 1 ]; then LAST[$r]=0; continue; fi
   for ((c=0; c<ncols; c++)); do [ -n "${TXT[$r,$c]}" ] && LAST[$r]=$c; done
 done
 
@@ -339,6 +348,7 @@ for ((c=0; c<ncols; c++)); do
   W[$c]=0
   for ((r=0; r<nrows; r++)); do
     [ "${LAST[$r]}" -ge 0 ] || continue
+    [ "${RULEROW[$r]:-0}" = 1 ] && continue
     v=${LEN[$r,$c]:-0}
     [ "$v" -gt ${W[$c]} ] && W[$c]=$v
   done
@@ -350,13 +360,41 @@ done
 # rest of them.
 SEP=' '
 SEPW=1
-RULEFMT=$(colour "$cfg_rulecol")
+
+wide=0
+for ((r=0; r<nrows; r++)); do
+  [ "${LAST[$r]}" -ge 0 ] || continue
+  [ "${RULEROW[$r]:-0}" = 1 ] && continue
+  row_w=0
+  for ((c=0; c<=${LAST[$r]}; c++)); do
+    cw=${W[$c]}; [ "${LEN[$r,$c]:-0}" -gt $cw ] && cw=${LEN[$r,$c]}
+    row_w=$(( row_w + cw ))
+    [ $c -gt 0 ] && row_w=$(( row_w + SEPW ))
+  done
+  [ $row_w -gt $wide ] && wide=$row_w
+done
+RCH=$(ico '─' '-')
 
 first=1
 for ((r=0; r<nrows; r++)); do
   [ "${LAST[$r]}" -ge 0 ] || continue
   [ $first = 1 ] || printf '\n'
   first=0
+
+  if [ "${RULEROW[$r]:-0}" = 1 ]; then
+    rw=$wide
+    # `tput cols` cannot work here: Claude Code captures stdout rather than
+    # attaching a tty. It exports COLUMNS/LINES instead (v2.1.153+).
+    if [ "${RULEFIT[$r]:-0}" = 1 ] && [ -n "${COLUMNS:-}" ] && [ "${COLUMNS:-0}" -gt 0 ] 2>/dev/null; then
+      rw=$(( COLUMNS - 2 ))
+    fi
+    [ "$rw" -lt 1 ] && rw=1
+    line=""
+    for ((i=0; i<rw; i++)); do line+=$RCH; done
+    printf '%s%s%s' "${FMT[$r,0]}" "$line" "$RST"
+    continue
+  fi
+
   for ((c=0; c<=${LAST[$r]}; c++)); do
     [ $c -gt 0 ] && printf '%s' "$SEP"
     t=${TXT[$r,$c]}
@@ -367,28 +405,3 @@ for ((r=0; r<nrows; r++)); do
     fi
   done
 done
-
-# --- horizontal rule, sized to the grid (not the terminal) -----------------
-if [ "$cfg_rule" = "true" ] && [ $first = 0 ]; then
-  wide=0
-  for ((r=0; r<nrows; r++)); do
-    [ "${LAST[$r]}" -ge 0 ] || continue
-    row_w=0
-    for ((c=0; c<=${LAST[$r]}; c++)); do
-      cw=${W[$c]}; [ "${LEN[$r,$c]:-0}" -gt $cw ] && cw=${LEN[$r,$c]}
-      row_w=$(( row_w + cw ))
-      [ $c -gt 0 ] && row_w=$(( row_w + SEPW ))
-    done
-    [ $row_w -gt $wide ] && wide=$row_w
-  done
-  # `tput cols` cannot work here: Claude Code captures stdout rather than
-  # attaching a tty. It exports COLUMNS/LINES instead (v2.1.153+).
-  if [ "$cfg_fit" = "true" ] && [ -n "${COLUMNS:-}" ] && [ "${COLUMNS:-0}" -gt 0 ] 2>/dev/null; then
-    wide=$(( COLUMNS - 2 ))
-    [ "$wide" -lt 4 ] && wide=4
-  fi
-  ch=$(ico '─' '-')
-  line=""
-  for ((i=0; i<wide; i++)); do line+=$ch; done
-  printf '\n%s%s%s' "$RULEFMT" "$line" "$RST"
-fi

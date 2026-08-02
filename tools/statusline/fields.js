@@ -280,6 +280,11 @@
         return (r === undefined || r === null) ? '' : '-' + r;
       } },
 
+    // ---- structural ----
+    { id: 'rule', group: 'Custom', label: 'horizontal line', isRule: true,
+      hint: 'A line across the status line. Put it in a row of its own.',
+      preview: function () { return ''; } },
+
     // ---- literal ----
     { id: 'text', group: 'Custom', label: 'custom text', hint: 'Any fixed string — a label, an emoji, a separator',
       custom: true,

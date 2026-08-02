@@ -3,11 +3,12 @@
  * State shape (this is exactly what gets embedded in statusline.sh as CONFIG,
  * and what gets base64'd into the share link and the one-line installer):
  *
- *   { v:1, rule:true, align:true, icons:true, ruleColor:"grey",
- *     rows: [ [ {f:"cwd", c:"bold-blue"}, ... ], ... ] }
+ *   { v:2, align:true, icons:true, links:false,
+ *     rows: [ [ {f:"cwd", c:"bold-blue"}, ... ], [ {f:"rule", c:"grey"} ], ... ] }
  *
- * Cells are joined by a single space. A divider is not a setting — it is a
- * text cell you place, so it can be coloured and moved like anything else.
+ * Cells are joined by a single space. Neither a divider nor the underline is a
+ * setting — a divider is a text cell and the line is a row of its own, so both
+ * can be coloured, moved and removed like anything else.
  * `t` is only on text cells, `i:false` drops a field's built-in label, and
  * `r` carries a ten-band colour ramp.
  */
@@ -158,6 +159,8 @@
   // A divider is just a text cell, so presets carry them like any other item.
   var BAR = { f: 'text', c: 'grey', t: '|' };
   var DOT = { f: 'text', c: 'grey', t: '·' };
+  function RULE(c) { return { f: 'rule', c: c || 'grey' }; }
+  function isRuleRow(row) { return row.length === 1 && row[0].f === 'rule'; }
 
   // ---------------------------------------------------------------- presets
   var PRESETS = {
@@ -168,7 +171,8 @@
         rows: [
           [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }],
           [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }],
-          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }]
+          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }],
+          [RULE()]
         ]
       }
     },
@@ -197,7 +201,8 @@
         rows: [
           [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }],
           [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }],
-          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }]
+          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }],
+          [RULE()]
         ]
       }
     },
@@ -208,7 +213,8 @@
         rows: [
           [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }, BAR, { f: 'repo', c: 'dim' }],
           [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'ctx_bar', c: 'ramp' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }, { f: 'fast', c: 'yellow' }],
-          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }, BAR, { f: 'cost', c: 'dim' }, BAR, { f: 'version', c: 'dim' }]
+          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }, BAR, { f: 'cost', c: 'dim' }, BAR, { f: 'version', c: 'dim' }],
+          [RULE()]
         ]
       }
     }
@@ -296,8 +302,7 @@
 
   // ------------------------------------------------------------------- state
   var DEFAULTS = {
-    v: 1, rule: true, align: true, icons: true, ruleColor: 'grey',
-    fit: false, links: false,
+    v: 2, align: true, icons: true, links: false,
     // settings.json options — the script ignores these, the installer applies them
     st: { padding: 0, refresh: 0, hideVim: false }
   };
@@ -325,9 +330,7 @@
   function configJSON() {
     // Compact and key-ordered so the same layout always produces the same string.
     return JSON.stringify({
-      v: 1, rule: !!state.rule, align: !!state.align, icons: !!state.icons,
-      ruleColor: state.ruleColor || 'grey',
-      fit: !!state.fit, links: !!state.links,
+      v: 2, align: !!state.align, icons: !!state.icons, links: !!state.links,
       st: {
         padding: Number(state.st.padding) || 0,
         refresh: Number(state.st.refresh) || 0,
@@ -339,6 +342,7 @@
           if (cell.f === 'text') o.t = cell.t || '';
           if (cell.i === false) o.i = false;
           if (cell.c === 'ramp') o.r = rampOf(cell).join(',');
+          if (cell.f === 'rule' && cell.t === 'fit') o.t = 'fit';
           return o;
         });
       })
@@ -493,6 +497,24 @@
       var chips = document.createElement('div');
       chips.className = 'chips';
       chips.dataset.row = r;
+
+      if (isRuleRow(row)) {
+        el.classList.add('is-rule');
+        chips.appendChild(makeChip(row[0], r, 0));
+        var preview = document.createElement('span');
+        preview.className = 'rule-preview';
+        preview.style.background = swatchHex(row[0].c || 'grey');
+        chips.appendChild(preview);
+        el.append(lab, chips);
+        var rt = document.createElement('div');
+        rt.className = 'rtools';
+        rt.appendChild(iconBtn('↑', 'Move up', function () { moveRow(r, -1); }));
+        rt.appendChild(iconBtn('↓', 'Move down', function () { moveRow(r, 1); }));
+        rt.appendChild(iconBtn('✕', 'Delete line', function () { removeRow(r); }));
+        el.appendChild(rt);
+        host.appendChild(el);
+        return;
+      }
 
       if (!row.length) {
         var ph = document.createElement('span');
@@ -688,6 +710,30 @@
     swWrap.append(swLabel, sws);
 
     box.append(head, swWrap);
+
+    if (f.isRule) {
+      var rr = document.createElement('div');
+      rr.className = 'irow';
+      var rw = document.createElement('div');
+      var rl = document.createElement('label');
+      rl.className = 'check';
+      var rc = document.createElement('input');
+      rc.type = 'checkbox';
+      rc.checked = cell.t === 'fit';
+      rc.addEventListener('change', function () {
+        if (rc.checked) cell.t = 'fit'; else delete cell.t;
+        commit();
+      });
+      rl.append(rc, document.createTextNode('Stretch to the terminal width'));
+      var rn = document.createElement('p');
+      rn.className = 'hint';
+      rn.style.margin = '0';
+      rn.textContent = 'Off sizes it to the widest row. On reads $COLUMNS, which Claude Code ' +
+                       'exports because tput cols cannot see the terminal from inside the script.';
+      rw.append(rl, rn);
+      rr.appendChild(rw);
+      box.appendChild(rr);
+    }
 
     if (cell.c === 'ramp') box.appendChild(rampEditor(cell, f));
 
@@ -1064,26 +1110,48 @@
 
     // build the text grid exactly the way statusline.sh does
     var grid = state.rows.map(function (row) {
+      if (isRuleRow(row)) return null;                 // drawn once widths are known
       return row.map(function (cell) { return { text: previewCell(cell, p), cell: cell }; });
     });
     var last = grid.map(function (row) {
+      if (!row) return 0;                              // a rule row always shows
       var l = -1;
       row.forEach(function (c, i) { if (c.text) l = i; });
       return l;
     });
-    var ncols = grid.reduce(function (m, r) { return Math.max(m, r.length); }, 0);
+    var ncols = grid.reduce(function (m, r) { return Math.max(m, r ? r.length : 0); }, 0);
     var widths = [];
     for (var c = 0; c < ncols; c++) {
       var w = 0;
       grid.forEach(function (row, r) {
-        if (last[r] < 0) return;
+        if (!row || last[r] < 0) return;
         if (row[c] && row[c].text.length > w) w = row[c].text.length;
       });
       widths.push(state.align ? w : 0);
     }
 
+    // widest content row first — a rule is sized to it
+    var wide = 0;
+    grid.forEach(function (row, r) {
+      if (!row || last[r] < 0) return;
+      var w = 0;
+      for (var c = 0; c <= last[r]; c++) {
+        var t = (row[c] && row[c].text) || '';
+        w += Math.max(widths[c] || 0, t.length) + (c > 0 ? 1 : 0);
+      }
+      if (w > wide) wide = w;
+    });
+
     var lines = [];
     grid.forEach(function (row, r) {
+      if (!row) {                                      // a rule row
+        var cell = state.rows[r][0];
+        var rw = (cell.t === 'fit') ? Math.max(wide, termCols()) : wide;
+        var f2 = document.createDocumentFragment();
+        f2.appendChild(span((state.icons ? '─' : '-').repeat(Math.max(1, rw)), cell.c || 'grey', p, 'rule', cell));
+        lines.push({ frag: f2, width: rw });
+        return;
+      }
       if (last[r] < 0) return;
       var frag = document.createDocumentFragment();
       var width = 0;
@@ -1120,12 +1188,6 @@
       term.appendChild(l.frag);
     });
 
-    if (state.rule) {
-      var wide = lines.reduce(function (m, l) { return Math.max(m, l.width); }, 0);
-      if (state.fit) wide = Math.max(wide, termCols());
-      term.appendChild(document.createTextNode('\n'));
-      term.appendChild(span((state.icons ? '─' : '-').repeat(wide), state.ruleColor, p));
-    }
     warn();
     renderChrome();
   }
@@ -1304,11 +1366,8 @@
   function update() { renderPreview(); renderOutput(); }
 
   function readOptions() {
-    state.ruleColor = $('#ruleColor').value;
     state.align = $('#optAlign').checked;
-    state.rule = $('#optRule').checked;
     state.icons = $('#optIcons').checked;
-    state.fit = $('#optFit').checked;
     state.links = $('#optLinks').checked;
     state.st.padding = Math.max(0, Math.min(40, Number($('#padding').value) || 0));
     state.st.refresh = Math.max(0, Math.min(3600, Number($('#refresh').value) || 0));
@@ -1319,11 +1378,8 @@
   }
 
   function writeOptions() {
-    $('#ruleColor').value = state.ruleColor || 'grey';
     $('#optAlign').checked = !!state.align;
-    $('#optRule').checked = !!state.rule;
     $('#optIcons').checked = !!state.icons;
-    $('#optFit').checked = !!state.fit;
     $('#optLinks').checked = !!state.links;
 
     $('#padding').value = state.st.padding || 0;
@@ -1333,13 +1389,6 @@
 
   function init() {
     // separator colour choices
-    var sc = $('#ruleColor');
-    COLOURS.forEach(function (c) {
-      var o = document.createElement('option');
-      o.value = c; o.textContent = c;
-      sc.appendChild(o);
-    });
-
     // presets
     var ps = $('#preset');
     Object.keys(PRESETS).forEach(function (k) {
@@ -1402,8 +1451,8 @@
       commit();
     });
     $('#sample').addEventListener('change', function () { renderPalette(); renderRows(); update(); });
-    ['#ruleColor', '#optAlign', '#optRule', '#optIcons', '#optFit',
-     '#optLinks', '#padding', '#refresh', '#optHideVim'].forEach(function (s) {
+    ['#optAlign', '#optIcons', '#optLinks',
+     '#padding', '#refresh', '#optHideVim'].forEach(function (s) {
       $(s).addEventListener('change', readOptions);
     });
     $('#padding').addEventListener('input', readOptions);
@@ -1411,6 +1460,12 @@
 
     $('#addRow').addEventListener('click', function () {
       state.rows.push([]);
+      commit();
+    });
+
+    $('#addRule').addEventListener('click', function () {
+      state.rows.push([RULE()]);
+      selected = { r: state.rows.length - 1, c: 0 };
       commit();
     });
 
