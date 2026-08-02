@@ -1,0 +1,59 @@
+{
+  "$comment": "Registry of helper tools. The hub renders this list. To add a tool: create tools/<id>/index.html and append an entry here — nothing else on the hub needs editing.",
+  "tools": [
+    {
+      "id": "statusline",
+      "name": "Status line builder",
+      "tagline": "Design the grid that sits under your Claude Code prompt, then copy the setup straight into Claude.",
+      "icon": "▚",
+      "status": "live",
+      "href": "tools/statusline/",
+      "tags": ["settings", "terminal", "no-install"]
+    },
+    {
+      "id": "settings",
+      "name": "settings.json explorer",
+      "tagline": "Browse every Claude Code setting with its type, default and scope, and assemble a settings.json you can paste.",
+      "icon": "⚙",
+      "status": "planned",
+      "href": null,
+      "tags": ["settings"]
+    },
+    {
+      "id": "hooks",
+      "name": "Hook builder",
+      "tagline": "Pick an event, describe the behaviour, get a working hook block and the matcher syntax that goes with it.",
+      "icon": "⤳",
+      "status": "planned",
+      "href": null,
+      "tags": ["automation"]
+    },
+    {
+      "id": "skills",
+      "name": "Skill scaffolder",
+      "tagline": "Generate a SKILL.md with correct frontmatter and a description that actually triggers when it should.",
+      "icon": "◆",
+      "status": "planned",
+      "href": null,
+      "tags": ["skills"]
+    },
+    {
+      "id": "mcp",
+      "name": "MCP connector helper",
+      "tagline": "Build the claude mcp add command for stdio, HTTP and SSE servers, with the auth header pitfalls handled.",
+      "icon": "⇄",
+      "status": "planned",
+      "href": null,
+      "tags": ["mcp"]
+    },
+    {
+      "id": "subagents",
+      "name": "Subagent designer",
+      "tagline": "Compose an agent definition file: tools allowlist, model, and a system prompt that stays in scope.",
+      "icon": "❖",
+      "status": "planned",
+      "href": null,
+      "tags": ["agents"]
+    }
+  ]
+}

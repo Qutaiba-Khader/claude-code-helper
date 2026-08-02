@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code Helper</title>
+<meta name="description" content="Browser tools that generate Claude Code configuration you can paste straight into Claude. No install, no account, nothing leaves your machine.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▚</text></svg>">
+<link rel="stylesheet" href="assets/css/base.css">
+<style>
+  .hero { padding: 60px 0 38px; }
+  .hero h1 { font-size: clamp(1.9rem, 4.5vw, 2.8rem); margin-bottom: .3em; }
+  .hero p.lede { font-size: 1.0625rem; max-width: 62ch; margin-bottom: 1.4em; }
+  .hero .cta { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .tool {
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px;
+    color: inherit; transition: border-color .14s, transform .14s, box-shadow .14s;
+  }
+  a.tool:hover { text-decoration: none; border-color: var(--line-2); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .tool.is-planned { opacity: .62; }
+  .tool .top { display: flex; align-items: center; gap: 10px; }
+  .tool .ico {
+    width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+    border-radius: 9px; background: var(--bg-3); border: 1px solid var(--line);
+    font-size: 1.05rem; color: var(--accent);
+  }
+  .tool h3 { margin: 0; font-size: 1rem; }
+  .tool p { margin: 0; font-size: .875rem; color: var(--fg-2); }
+  .tool .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 8px; }
+
+  .why { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 12px; }
+  .why div h3 { color: var(--fg); }
+  .why div p { font-size: .875rem; margin: 0; }
+  section { margin-top: 44px; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .section-head p { margin: 0; font-size: .875rem; }
+</style>
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="./"><span class="dot"></span> Claude Code Helper</a>
+    <nav>
+      <a href="tools/statusline/">Status line</a>
+      <a href="docs/">Docs</a>
+      <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
+      <button class="btn btn-ghost btn-sm" id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <h1>Configure Claude Code without reading the docs.</h1>
+    <p class="lede">
+      Small browser tools that build real Claude Code configuration — status lines, settings,
+      hooks, skills — and hand you something you can paste straight into Claude. Everything runs
+      in this page: no install, no account, nothing is uploaded.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="tools/statusline/">Open the status line builder →</a>
+      <a class="btn" href="https://github.com/Qutaiba-Khader/claude-code-helper">Source on GitHub</a>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <h2>Tools</h2>
+      <p id="count"></p>
+    </div>
+    <div class="grid" id="tools"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>How it works</h2></div>
+    <div class="why">
+      <div>
+        <h3>Build it visually</h3>
+        <p>Drag the pieces around and watch a live terminal preview update as you go. No guessing what a setting does.</p>
+      </div>
+      <div>
+        <h3>Three ways to apply it</h3>
+        <p>Copy a ready prompt for Claude Code, copy the raw script, or run a one-line installer. Whichever suits you.</p>
+      </div>
+      <div>
+        <h3>Nothing leaves the page</h3>
+        <p>It is a static site. Your layout is kept in your browser and encoded into the share link — never sent anywhere.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span>MIT licensed. Not affiliated with Anthropic.</span>
+    <span class="spacer"></span>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper/issues">Report an issue</a>
+  </div>
+</footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/hub.js"></script>
+</body>
+</html>

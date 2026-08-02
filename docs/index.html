@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs — Claude Code Helper</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▚</text></svg>">
+<link rel="stylesheet" href="../assets/css/base.css">
+<style>
+  main.wrap { padding: 40px 20px 0; }
+  .doclist { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); margin-top: 18px; }
+  .doclist a { display: block; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg-2); color: inherit; }
+  .doclist a:hover { text-decoration: none; border-color: var(--line-2); }
+  .doclist h3 { margin: 0 0 4px; font-size: .95rem; }
+  .doclist p { margin: 0; font-size: .8125rem; }
+</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="dot"></span> Claude Code Helper</a>
+    <nav>
+      <a href="../">All tools</a>
+      <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
+      <button class="btn btn-ghost btn-sm" id="theme" aria-label="Toggle theme">◐</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+  <h1>Docs</h1>
+  <p>Reference material behind the tools. All of it is markdown in the repo.</p>
+  <div class="doclist">
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper/blob/main/docs/statusline-payload.md">
+      <h3>Status line payload reference</h3>
+      <p>The complete Status-hook JSON schema, which keys are optional, and the traps in parsing it.</p>
+    </a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper/blob/main/CODE-INDEX.md">
+      <h3>Code index</h3>
+      <p>Every file, what it owns, and the functions worth knowing about.</p>
+    </a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper/blob/main/docs/adding-a-tool.md">
+      <h3>Adding a tool</h3>
+      <p>Two steps to put a new tool on the hub, plus the house rules.</p>
+    </a>
+    <a href="https://github.com/Qutaiba-Khader/claude-code-helper/blob/main/README.md">
+      <h3>README</h3>
+      <p>Project overview, the three ways to apply a status line, and the gotchas already handled.</p>
+    </a>
+  </div>
+</main>
+<footer class="site-foot"><div class="wrap"><span>MIT licensed. Not affiliated with Anthropic.</span></div></footer>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="../assets/js/ui.js"></script>
+</body>
+</html>
