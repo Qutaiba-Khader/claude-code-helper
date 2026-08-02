@@ -143,7 +143,11 @@ sets them.
 - **`tput cols` cannot see the terminal.** Claude Code captures stdout rather than attaching a
   tty; it exports `$COLUMNS` and `$LINES` instead (v2.1.153+).
 - **Updates are debounced at 300ms and a slow script gets cancelled** when the next update fires,
-  so a heavy `git status` means a stale line.
+  so the generated script forks ten processes rather than the hundred and sixty a naive version
+  needs: one `jq` call for the payload and the config together, helpers that return through a
+  variable instead of a subshell, `$EPOCHSECONDS` instead of `date`, `$USER`/`$HOSTNAME` instead
+  of `whoami`/`hostname`, and a cached colour table. `git` is the only thing left that can be slow,
+  and it only runs when the branch field is in the layout.
 - **Set `refreshInterval` for anything time-based.** Event triggers are: a new assistant message,
   `/compact` finishing, a permission-mode change and a vim toggle — a clock will otherwise sit
   still between messages.

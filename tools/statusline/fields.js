@@ -196,14 +196,8 @@
         return (v === undefined || v === null) ? '' : pct(v) + af(cell, ' left');
       } },
     { id: 'ctx_bar', group: 'Model', label: 'context bar', hint: 'Ten-segment usage bar', heat: true,
-      pct: function (p) { return get(p, 'context_window.used_percentage'); },
-      preview: function (p, o) {
-        var v = get(p, 'context_window.used_percentage');
-        if (v === undefined || v === null) return '';
-        var filled = Math.floor(Math.floor(v) * 10 / 100), s = '';
-        for (var i = 0; i < 10; i++) s += (i < filled) ? ico(o, '▰', '#') : ico(o, '▱', '.');
-        return val(s);
-      } },
+      pct: function (p) { return ctxPct(p); },
+      preview: function (p, o) { return barOf(p, o, ['▰', '▱'], ['#', '.'], 10); } },
     { id: 'ctx_bar_slim', group: 'Model', label: 'bar — slim lines', heat: true,
       hint: 'Thin rule style: ━━━───────',
       pct: function (p) { return ctxPct(p); },
