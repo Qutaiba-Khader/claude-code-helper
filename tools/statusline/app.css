@@ -125,7 +125,7 @@
 /* the startup banner */
 .term-banner { display: block; margin-bottom: 2px; }
 .tsl { display: block; }
-.tsl .logo { color: var(--term-accent, #d98a52); font-weight: 400; }
+.tsl .logo { color: #d97757; font-weight: 400; }   /* Claude Code's own orange */
 .tsl .bi { color: var(--term-fg, #dfe4ee); }
 .tsl .bi.v, .tsl .bi.p, .tsl .bi.d { opacity: .55; }
 

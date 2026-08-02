@@ -118,7 +118,7 @@
     t.style.setProperty('--term-bg', s.bg);
     t.style.setProperty('--term-fg', s.fg);
     t.style.setProperty('--term-caret', s.n[2]);
-    t.style.setProperty('--term-accent', s.n[5]);
+    t.style.setProperty('--term-accent', s.n[4]);
     t.style.setProperty('--term-dim', s.b[0]);
     t.style.setProperty('--term-font', (FONTS[look.font] || FONTS.system).stack);
     t.style.setProperty('--term-size', look.size + 'px');
