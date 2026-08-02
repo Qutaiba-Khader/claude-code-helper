@@ -303,8 +303,9 @@
   // ------------------------------------------------------------------- state
   var DEFAULTS = {
     v: 2, align: true, icons: true, links: false,
-    // settings.json options — the script ignores these, the installer applies them
-    st: { padding: 0, refresh: 0, hideVim: false }
+    // the one settings.json option worth choosing; the script ignores it and
+    // the installer writes it. hideVimModeIndicator follows the layout instead.
+    st: { refresh: 0 }
   };
   var state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
   var selected = null;      // {r, c}
@@ -332,9 +333,9 @@
     return JSON.stringify({
       v: 2, align: !!state.align, icons: !!state.icons, links: !!state.links,
       st: {
-        padding: Number(state.st.padding) || 0,
         refresh: Number(state.st.refresh) || 0,
-        hideVim: !!state.st.hideVim
+        // drawing vim.mode yourself means the built-in indicator has to go
+        hideVim: usesField('vim')
       },
       rows: state.rows.map(function (row) {
         return row.map(function (cell) {
@@ -1244,10 +1245,10 @@
       msgs.push(['Rate-limit fields need a Claude subscription and only appear after the first response of a session.', false]);
     }
     if (usesTimeField() && !state.st.refresh) {
-      msgs.push(['This layout has time-based fields but no refresh interval — clocks and countdowns will sit still between messages. Set Refresh to 30–60s.', true]);
+      msgs.push(['This layout has time-based fields — set "Refresh when" to a timer, or clocks and countdowns will sit still between messages.', true]);
     }
-    if (usesField('vim') && !state.st.hideVim) {
-      msgs.push(['You are drawing vim.mode yourself — tick "Hide built-in vim indicator" so it is not shown twice.', true]);
+    if (usesField('vim')) {
+      msgs.push(['You are drawing vim.mode yourself, so hideVimModeIndicator is set for you — the built-in indicator will not be shown twice.', false]);
     }
     if (state.links && !usesField('pr')) {
       msgs.push(['Clickable links only affect the PR field right now, and need a terminal with OSC 8 support (iTerm2, Kitty, WezTerm).', false]);
@@ -1283,9 +1284,8 @@
   // The statusLine block exactly as it should appear in settings.json.
   function settingsBlock(cmd) {
     var o = { type: 'command', command: cmd };
-    if (state.st.padding) o.padding = Number(state.st.padding);
     if (state.st.refresh) o.refreshInterval = Number(state.st.refresh);
-    if (state.st.hideVim) o.hideVimModeIndicator = true;
+    if (usesField('vim')) o.hideVimModeIndicator = true;
     return JSON.stringify({ statusLine: o }, null, 2)
       .split('\n').map(function (l) { return '   ' + l; }).join('\n').trim();
   }
@@ -1373,9 +1373,10 @@
     state.align = $('#optAlign').checked;
     state.icons = $('#optIcons').checked;
     state.links = $('#optLinks').checked;
-    state.st.padding = Math.max(0, Math.min(40, Number($('#padding').value) || 0));
-    state.st.refresh = Math.max(0, Math.min(3600, Number($('#refresh').value) || 0));
-    state.st.hideVim = $('#optHideVim').checked;
+    state.st.refresh = $('#refreshTimer').checked
+      ? Math.max(1, Math.min(3600, Number($('#refresh').value) || 30))
+      : 0;
+    $('#refresh').disabled = !$('#refreshTimer').checked;
     save();
     renderRows();
     update();
@@ -1386,9 +1387,10 @@
     $('#optIcons').checked = !!state.icons;
     $('#optLinks').checked = !!state.links;
 
-    $('#padding').value = state.st.padding || 0;
-    $('#refresh').value = state.st.refresh || 0;
-    $('#optHideVim').checked = !!state.st.hideVim;
+    $('#refreshTimer').checked = (state.st.refresh || 0) > 0;
+    $('#refreshEvent').checked = !state.st.refresh;
+    $('#refresh').value = state.st.refresh || 30;
+    $('#refresh').disabled = !state.st.refresh;
   }
 
   function init() {
@@ -1456,11 +1458,15 @@
     });
     $('#sample').addEventListener('change', function () { renderPalette(); renderRows(); update(); });
     ['#optAlign', '#optIcons', '#optLinks',
-     '#padding', '#refresh', '#optHideVim'].forEach(function (s) {
+     '#refresh', '#refreshEvent', '#refreshTimer'].forEach(function (s) {
       $(s).addEventListener('change', readOptions);
     });
-    $('#padding').addEventListener('input', readOptions);
     $('#refresh').addEventListener('input', readOptions);
+    // typing a number is a request for a timer
+    $('#refresh').addEventListener('focus', function () {
+      $('#refreshTimer').checked = true;
+      readOptions();
+    });
 
     $('#addRow').addEventListener('click', function () {
       state.rows.push([]);
