@@ -123,6 +123,32 @@ Markup and ids the JS binds to: `#preset`, `#share`, `#reset`, `#sample`, `#term
 
 ---
 
+## `tools/settings/` — the settings.json explorer
+
+### `settings-data.js` — the catalogue
+Exports four globals. `CCH_SETTINGS` is the list; each entry carries `key` (dotted path), `type`,
+`def`, `group`, `desc`, and optionally `values` (enum), `managed`, `since`, `live`
+(`reload`/`restart`), `example` and `link`. `CCH_SCOPES` describes the four settings files,
+`CCH_PRECEDENCE` orders them, `CCH_ENV_VARS` lists the environment variables.
+
+Verified against code.claude.com/docs/en/settings for Claude Code 2.1.220. When Anthropic adds a
+setting, this file is the only place that needs editing.
+
+### `app.js` — the explorer
+State is just `{ scope, chosen: { "<dotted.key>": value } }`; everything else is derived.
+
+| Function | Does |
+|---|---|
+| `buildObject()` | Expands dotted keys into nested objects, so `permissions.allow` and `permissions.deny` land in one `permissions` object |
+| `valueControl(s, value, onChange)` | Returns a control matched to the type — buttons for booleans, a select for enums, one-per-line for string arrays, a JSON box with live parse checking for objects |
+| `defaultFor(s)` | The value a setting is seeded with, preferring its documented `example` |
+| `renderList` / `renderDetail` / `renderChosen` | Rail, detail pane, and the running list of picked settings |
+| `renderScopeCard()` | The target file, who it applies to, and a warning when a managed-only key sits in a non-managed file |
+| `buildPrompt` / `buildJq` | The merge prompt (with per-key explanations and live-vs-restart notes) and the in-place `jq` snippet |
+| `save` / `load` | `localStorage` plus a `#c=` share link, same scheme as the status line builder |
+
+---
+
 ## `docs/`
 
 | File | Contents |
@@ -135,6 +161,8 @@ Markup and ids the JS binds to: `#preset`, `#share`, `#reset`, `#sample`, `#term
 
 ## Invariants worth not breaking
 
+0. **`settings-data.js` is the only place settings live.** The UI derives everything — controls,
+   validation, warnings, output — from the catalogue entry.
 1. **`fields.js` and `statusline.sh` must agree.** A field with a `preview()` but no `case` arm
    shows in the browser and vanishes in the terminal. The reverse is just as bad.
 2. **Colour names are a shared vocabulary** between `COLOURS`/`HEX` in `app.js` and `basecode()`

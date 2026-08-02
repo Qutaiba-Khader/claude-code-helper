@@ -15,7 +15,7 @@ layout is kept in your browser and encoded into the URL, and nothing is ever upl
 | Tool | State | What it does |
 |---|---|---|
 | [Status line builder](https://qutaiba-khader.github.io/claude-code-helper/tools/statusline/) | ready | Drag fields into rows, watch a live terminal preview, then copy a prompt for Claude / the raw script / a one-line installer |
-| settings.json explorer | planned | Every setting with its type, default and scope |
+| [settings.json explorer](https://qutaiba-khader.github.io/claude-code-helper/tools/settings/) | ready | Every documented setting with its type, default, version and scope — pick some and get a file you can merge |
 | Hook builder | planned | Pick an event, get a working hook block |
 | Skill scaffolder | planned | `SKILL.md` with frontmatter that actually triggers |
 | MCP connector helper | planned | Build the `claude mcp add` command, auth pitfalls handled |
@@ -24,6 +24,27 @@ layout is kept in your browser and encoded into the URL, and nothing is ever upl
 The live list is [`tools.json`](tools.json) — the hub renders itself from it.
 
 ---
+
+## settings.json explorer
+
+Eighty documented `settings.json` keys, grouped and searchable, each with its type, default,
+minimum version and whether it only works from a managed file. Pick the ones you want and the
+tool assembles the file.
+
+Every setting gets a control matched to its type — a pair of buttons for a boolean, a select for
+an enum, one-per-line for a string array — rather than making you hand-write JSON. Dotted keys
+like `permissions.allow` and `permissions.deny` merge into a single nested object.
+
+Three ways out:
+
+- **Prompt for Claude** — merges the keys into your settings file and explains what each one does,
+  then shows you `/status` to confirm.
+- **Raw JSON** — the keys on their own, to merge by hand.
+- **jq merge** — a shell snippet that merges in place and backs the file up first.
+
+It also warns when you put a managed-only key in a user or project file, where it would be
+silently ignored, and carries the reference material: which file wins, what reloads live versus
+what needs a restart, and the environment variables.
 
 ## Status line builder
 
@@ -130,6 +151,11 @@ tools/statusline/
   app.js                state, drag & drop, preview, output generation
   statusline.sh         the runtime — single source of truth for the script
   install.sh            one-line installer
+tools/settings/
+  index.html            explorer UI
+  app.css               page-scoped styles
+  settings-data.js      the settings catalogue, scopes, precedence, env vars
+  app.js                selection state, typed value editors, output generation
 docs/                   payload reference and contributor notes
 ```
 
