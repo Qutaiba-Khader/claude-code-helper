@@ -399,3 +399,17 @@
 }
 .ramp-pick { display: grid; gap: 6px; }
 .ramp-presets { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* type straight into a row: a divider, a label, whatever you want */
+.row-add {
+  width: 7ch; min-width: 7ch; flex: 0 1 12ch;
+  font-family: var(--mono); font-size: .75rem;
+  padding: 5px 7px; border-radius: 3px;
+  background: transparent; border: 1px dashed var(--line-2); color: var(--fg);
+}
+.row-add::placeholder { color: var(--fg-3); }
+.row-add:focus {
+  width: 14ch; flex-basis: 14ch; outline: none;
+  border-style: solid; border-color: var(--accent); background: var(--bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}

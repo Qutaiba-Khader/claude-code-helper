@@ -128,6 +128,14 @@ tok() {  # 41500 -> 41k
 
 pct() { printf '%d%%' "${1%%.*}"; }
 
+ctxsize() {  # 1000000 -> 1M, 200000 -> 200k
+  local n=${1:-0}
+  case "$n" in ''|*[!0-9]*) return ;; esac
+  if   [ "$n" -ge 1000000 ] && [ $(( n % 1000000 )) -eq 0 ]; then printf '%dM' $(( n / 1000000 ))
+  elif [ "$n" -ge 1000 ]; then printf '%dk' $(( n / 1000 ))
+  else printf '%d' "$n"; fi
+}
+
 countdown() {  # unix epoch seconds, or an ISO-8601 timestamp
   local raw=$1 epoch now left
   [ -n "$raw" ] || return
@@ -201,9 +209,12 @@ render() {
       [ -n "$p_model" ] || return
       v=$p_model
       if [[ $p_model_id == *'[1m]'* || $p_model_id == *-1m* ]] && [[ $v != *1M* ]]; then
-        v="$v (1M context)"
+        v="$v 1M"
+      elif [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null; then
+        v="$v $(ctxsize "$p_ctx")"
       fi
-      printf '[%s]' "$v" ;;
+      printf '%s' "$v" ;;
+    ctx_size)  [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null && ctxsize "$p_ctx" ;;
     tokens)
       [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null || return
       printf '%s/%s (%d%%)' "$(tok "$p_in")" "$(tok "$p_ctx")" $(( p_in * 100 / p_ctx )) ;;
@@ -211,6 +222,12 @@ render() {
       [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null || return
       printf '%s/%s' "$(tok "$p_in")" "$(tok "$p_ctx")" ;;
     ctx_pct)   [ -n "$p_ctxpct" ]  && printf '%s%s' "$(aff 'ctx ')" "$(pct "$p_ctxpct")" ;;
+    tokens_pct)
+      # the percentage on its own, computed from the token counts so it works
+      # even before used_percentage is populated
+      if [ -n "$p_ctxpct" ]; then printf '%s' "$(pct "$p_ctxpct")"
+      elif [ "${p_ctx:-0}" -gt 0 ] 2>/dev/null; then printf '%d%%' $(( p_in * 100 / p_ctx ))
+      fi ;;
     ctx_left)  [ -n "$p_ctxleft" ] && printf '%s%s' "$(pct "$p_ctxleft")" "$(aff ' left')" ;;
     ctx_bar)
       [ -n "$p_ctxpct" ] || return
@@ -263,7 +280,7 @@ heatval() {
   case "$1" in
     rl5|rl5_bare) printf '%s' "$p_rl5" ;;
     rl7|rl7_bare) printf '%s' "$p_rl7" ;;
-    ctx_pct|ctx_bar|tokens|tokens_plain) printf '%s' "$p_ctxpct" ;;
+    ctx_pct|ctx_bar|tokens|tokens_plain|tokens_pct) printf '%s' "$p_ctxpct" ;;
     ctx_left) printf '%s' "$p_ctxleft" ;;
   esac
 }

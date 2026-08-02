@@ -492,10 +492,33 @@
       if (!row.length) {
         var ph = document.createElement('span');
         ph.className = 'row-empty';
-        ph.textContent = 'drop a field here';
+        ph.textContent = 'drop a field here, or type';
         chips.appendChild(ph);
       }
       row.forEach(function (cell, c) { chips.appendChild(makeChip(cell, r, c)); });
+
+      // type anything straight into the row — a divider, a label, a symbol
+      var add = document.createElement('input');
+      add.type = 'text';
+      add.className = 'row-add';
+      add.placeholder = '+ text';
+      add.spellcheck = false;
+      add.setAttribute('aria-label', 'Add text to row ' + (r + 1));
+      add.dataset.row = r;
+      add.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var v = add.value;
+        if (!v.length) return;
+        state.rows[r].push({ f: 'text', c: 'dim', t: v });
+        selected = null;
+        save();
+        renderRows();
+        update();
+        var next = document.querySelector('.row-add[data-row="' + r + '"]');
+        if (next) next.focus();
+      });
+      chips.appendChild(add);
 
       var tools = document.createElement('div');
       tools.className = 'rtools';
