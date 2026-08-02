@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":1,"sep":" | ","sepColor":"grey","rule":true,"align":true,"icons":true,"divider":true,"rows":[[{"f":"userhost","c":"bold-green"},{"f":"cwd","c":"bold-blue"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"model_ctx","c":"bold-cyan"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"heat"},{"f":"rl7","c":"heat"}]]}'
+CONFIG='{"v":1,"rule":true,"align":true,"icons":true,"ruleColor":"grey","rows":[[{"f":"userhost","c":"bold-green"},{"f":"text","c":"grey","t":"|"},{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"heat"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"heat"}]]}'
 
 input=$(cat)
 
@@ -66,13 +66,12 @@ IFS=$'\037' read -r \
 [ -n "$p_cwd" ] || p_cwd="$PWD"
 
 # --- config -> shell vars --------------------------------------------------
-IFS=$'\037' read -r cfg_sep cfg_sepcol cfg_rule cfg_align cfg_icons cfg_fit cfg_links cfg_div <<<"$(
+IFS=$'\037' read -r cfg_rule cfg_align cfg_icons cfg_fit cfg_links cfg_rulecol <<<"$(
   printf '%s' "$CONFIG" | jq -j '
     def b(d): if . == null then d else . end | tostring;
-    [ (.sep // " | "), (.sepColor // "grey"),
-      (.rule | b(false)), (.align | b(true)),
-      (.icons | b(true)), (.fit | b(false)), (.links | b(false)),
-      (.divider | b(true)) ] | join("\u001f")' 2>/dev/null
+    [ (.rule | b(false)), (.align | b(true)), (.icons | b(true)),
+      (.fit | b(false)), (.links | b(false)),
+      (.ruleColor // "grey") ] | join("\u001f")' 2>/dev/null
 )"
 
 RST=$'\033[0m'
@@ -346,16 +345,12 @@ for ((c=0; c<ncols; c++)); do
 done
 [ "$cfg_align" = "true" ] || for ((c=0; c<ncols; c++)); do W[$c]=0; done
 
-SEPFMT=$(colour "$cfg_sepcol")
-if [ "$cfg_div" = "true" ]; then
-  SEP="${SEPFMT}${cfg_sep}${RST}"
-  SEPW=${#cfg_sep}
-else
-  # dividers off: the mark goes entirely. One space keeps cells from touching;
-  # column alignment does the rest.
-  SEP=' '
-  SEPW=1
-fi
+# Cells are joined by a single space. Anything more — a bar, a dot, a slash —
+# is a text cell placed in the row, so it can be coloured and moved like the
+# rest of them.
+SEP=' '
+SEPW=1
+RULEFMT=$(colour "$cfg_rulecol")
 
 first=1
 for ((r=0; r<nrows; r++)); do
@@ -395,5 +390,5 @@ if [ "$cfg_rule" = "true" ] && [ $first = 0 ]; then
   ch=$(ico '─' '-')
   line=""
   for ((i=0; i<wide; i++)); do line+=$ch; done
-  printf '\n%s%s%s' "$SEPFMT" "$line" "$RST"
+  printf '\n%s%s%s' "$RULEFMT" "$line" "$RST"
 fi

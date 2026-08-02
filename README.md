@@ -85,11 +85,17 @@ you can hand-edit the layout later without regenerating anything, and the instal
 ship ~300 bytes of config instead of the whole script.
 
 ```
-CONFIG='{"v":1,"sep":" | ","sepColor":"grey","rule":true,"align":true,"icons":true,
-         "divider":true,"fit":false,"links":false,
+CONFIG='{"v":1,"rule":true,"align":true,"icons":true,"ruleColor":"grey",
+         "fit":false,"links":false,
          "st":{"padding":0,"refresh":0,"hideVim":false},
-         "rows":[[{"f":"userhost","c":"bold-green"},{"f":"cwd","c":"bold-blue"}], …]}'
+         "rows":[[{"f":"userhost","c":"bold-green"},
+                  {"f":"text","c":"grey","t":"|"},
+                  {"f":"cwd","c":"bold-blue"}], …]}'
 ```
+
+**There is no divider setting.** Cells are joined by a single space; a bar, a dot or anything
+else is a `text` cell you place in the row, so it can be coloured and moved like any other
+field. Type it straight into a row, or take a glyph from the Symbols palette.
 
 Requirements: `jq` on `PATH`, plus `git` if you use the branch field.
 

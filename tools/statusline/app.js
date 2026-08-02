@@ -3,10 +3,13 @@
  * State shape (this is exactly what gets embedded in statusline.sh as CONFIG,
  * and what gets base64'd into the share link and the one-line installer):
  *
- *   { v:1, sep:" | ", sepColor:"grey", rule:true, align:true, icons:true,
+ *   { v:1, rule:true, align:true, icons:true, ruleColor:"grey",
  *     rows: [ [ {f:"cwd", c:"bold-blue"}, ... ], ... ] }
  *
- * `t` is only present on custom-text cells.
+ * Cells are joined by a single space. A divider is not a setting — it is a
+ * text cell you place, so it can be coloured and moved like anything else.
+ * `t` is only on text cells, `i:false` drops a field's built-in label, and
+ * `r` carries a ten-band colour ramp.
  */
 (function () {
   'use strict';
@@ -152,32 +155,37 @@
     });
   }
 
+  // A divider is just a text cell, so presets carry them like any other item.
+  var BAR = { f: 'text', c: 'grey', t: '|' };
+  var DOT = { f: 'text', c: 'grey', t: '·' };
+
   // ---------------------------------------------------------------- presets
   var PRESETS = {
     grid: {
       name: 'The grid (3 rows)',
       cfg: {
-        v: 1, sep: ' | ', sepColor: 'grey', rule: true, align: true, icons: true,
+        v: 1, rule: true, align: true, icons: true,
         rows: [
-          [{ f: 'userhost', c: 'bold-green' }, { f: 'cwd', c: 'bold-blue' }, { f: 'branch', c: 'bold-yellow' }],
-          [{ f: 'tokens', c: 'bold-magenta' }, { f: 'model_ctx', c: 'bold-cyan' }, { f: 'effort', c: 'dim' }],
-          [{ f: 'rl5', c: 'heat' }, { f: 'rl7', c: 'heat' }]
+          [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }],
+          [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }],
+          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }]
         ]
       }
     },
     minimal: {
       name: 'Minimal (one line)',
       cfg: {
-        v: 1, sep: ' · ', sepColor: 'grey', rule: false, align: false, icons: true,
-        rows: [[{ f: 'cwd', c: 'blue' }, { f: 'branch', c: 'yellow' }, { f: 'model', c: 'cyan' }, { f: 'ctx_pct', c: 'heat' }]]
+        v: 1, rule: false, align: false, icons: true,
+        rows: [[{ f: 'cwd', c: 'blue' }, DOT, { f: 'branch', c: 'yellow' }, DOT,
+                { f: 'model', c: 'cyan' }, DOT, { f: 'tokens_pct', c: 'heat' }]]
       }
     },
     context: {
       name: 'Context watcher',
       cfg: {
-        v: 1, sep: '  ', sepColor: 'grey', rule: false, align: true, icons: true,
+        v: 1, rule: false, align: true, icons: true,
         rows: [
-          [{ f: 'ctx_bar', c: 'heat' }, { f: 'tokens', c: 'bold-magenta' }, { f: 'model', c: 'cyan' }],
+          [{ f: 'ctx_bar', c: 'ramp' }, { f: 'tokens', c: 'bold-magenta' }, { f: 'model', c: 'cyan' }],
           [{ f: 'rl5', c: 'heat' }, { f: 'rl7', c: 'heat' }, { f: 'cost', c: 'dim' }]
         ]
       }
@@ -185,22 +193,22 @@
     ascii: {
       name: 'ASCII safe (Windows)',
       cfg: {
-        v: 1, sep: ' | ', sepColor: 'grey', rule: true, align: true, icons: false,
+        v: 1, rule: true, align: true, icons: false,
         rows: [
-          [{ f: 'userhost', c: 'bold-green' }, { f: 'cwd', c: 'bold-blue' }, { f: 'branch', c: 'bold-yellow' }],
-          [{ f: 'tokens', c: 'bold-magenta' }, { f: 'model_ctx', c: 'bold-cyan' }],
-          [{ f: 'rl5', c: 'heat' }, { f: 'rl7', c: 'heat' }]
+          [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }],
+          [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }],
+          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }]
         ]
       }
     },
     everything: {
       name: 'Everything',
       cfg: {
-        v: 1, sep: ' | ', sepColor: 'grey', rule: true, align: true, icons: true,
+        v: 1, rule: true, align: true, icons: true,
         rows: [
-          [{ f: 'userhost', c: 'bold-green' }, { f: 'cwd', c: 'bold-blue' }, { f: 'branch', c: 'bold-yellow' }, { f: 'repo', c: 'dim' }],
-          [{ f: 'tokens', c: 'bold-magenta' }, { f: 'ctx_bar', c: 'heat' }, { f: 'model_ctx', c: 'bold-cyan' }, { f: 'effort', c: 'dim' }, { f: 'fast', c: 'yellow' }],
-          [{ f: 'rl5', c: 'heat' }, { f: 'rl7', c: 'heat' }, { f: 'cost', c: 'dim' }, { f: 'style', c: 'dim' }, { f: 'version', c: 'dim' }]
+          [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }, BAR, { f: 'repo', c: 'dim' }],
+          [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'ctx_bar', c: 'ramp' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }, { f: 'fast', c: 'yellow' }],
+          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }, BAR, { f: 'cost', c: 'dim' }, BAR, { f: 'version', c: 'dim' }]
         ]
       }
     }
@@ -288,10 +296,8 @@
 
   // ------------------------------------------------------------------- state
   var DEFAULTS = {
-    v: 1, sep: ' | ', sepColor: 'grey', rule: true, align: true, icons: true,
-    fit: false, links: false, divider: true,
-    // set once you touch a divider control; presets stop overriding it after that
-    dividerSet: false,
+    v: 1, rule: true, align: true, icons: true, ruleColor: 'grey',
+    fit: false, links: false,
     // settings.json options — the script ignores these, the installer applies them
     st: { padding: 0, refresh: 0, hideVim: false }
   };
@@ -319,10 +325,9 @@
   function configJSON() {
     // Compact and key-ordered so the same layout always produces the same string.
     return JSON.stringify({
-      v: 1, sep: state.sep, sepColor: state.sepColor,
-      rule: !!state.rule, align: !!state.align, icons: !!state.icons,
-      fit: !!state.fit, links: !!state.links, divider: !!state.divider,
-      dividerSet: !!state.dividerSet,
+      v: 1, rule: !!state.rule, align: !!state.align, icons: !!state.icons,
+      ruleColor: state.ruleColor || 'grey',
+      fit: !!state.fit, links: !!state.links,
       st: {
         padding: Number(state.st.padding) || 0,
         refresh: Number(state.st.refresh) || 0,
@@ -1083,15 +1088,7 @@
       var frag = document.createDocumentFragment();
       var width = 0;
       for (var c = 0; c <= last[r]; c++) {
-        if (c > 0) {
-          if (state.divider) {
-            frag.appendChild(span(state.sep, state.sepColor, p));
-            width += state.sep.length;
-          } else {
-            frag.appendChild(document.createTextNode(' '));
-            width += 1;
-          }
-        }
+        if (c > 0) { frag.appendChild(document.createTextNode(' ')); width += 1; }
         var item = row[c] || { text: '', cell: { c: 'default' } };
         if (item.text) {
           var node = span(item.text, item.cell.c, p, item.cell.f, item.cell);
@@ -1127,7 +1124,7 @@
       var wide = lines.reduce(function (m, l) { return Math.max(m, l.width); }, 0);
       if (state.fit) wide = Math.max(wide, termCols());
       term.appendChild(document.createTextNode('\n'));
-      term.appendChild(span((state.icons ? '─' : '-').repeat(wide), state.sepColor, p));
+      term.appendChild(span((state.icons ? '─' : '-').repeat(wide), state.ruleColor, p));
     }
     warn();
     renderChrome();
@@ -1307,14 +1304,12 @@
   function update() { renderPreview(); renderOutput(); }
 
   function readOptions() {
-    state.sep = $('#sep').value;
-    state.sepColor = $('#sepColor').value;
+    state.ruleColor = $('#ruleColor').value;
     state.align = $('#optAlign').checked;
     state.rule = $('#optRule').checked;
     state.icons = $('#optIcons').checked;
     state.fit = $('#optFit').checked;
     state.links = $('#optLinks').checked;
-    state.divider = $('#optDivider').checked;
     state.st.padding = Math.max(0, Math.min(40, Number($('#padding').value) || 0));
     state.st.refresh = Math.max(0, Math.min(3600, Number($('#refresh').value) || 0));
     state.st.hideVim = $('#optHideVim').checked;
@@ -1323,23 +1318,14 @@
     update();
   }
 
-  function markPresets() {
-    document.querySelectorAll('#sepPresets [data-sep]').forEach(function (b) {
-      b.classList.toggle('is-on', b.dataset.sep === state.sep &&
-        (b.dataset.sep.trim().length > 0) === !!state.divider);
-    });
-  }
-
   function writeOptions() {
-    $('#sep').value = state.sep;
-    $('#sepColor').value = state.sepColor;
+    $('#ruleColor').value = state.ruleColor || 'grey';
     $('#optAlign').checked = !!state.align;
     $('#optRule').checked = !!state.rule;
     $('#optIcons').checked = !!state.icons;
     $('#optFit').checked = !!state.fit;
     $('#optLinks').checked = !!state.links;
-    $('#optDivider').checked = !!state.divider;
-    markPresets();
+
     $('#padding').value = state.st.padding || 0;
     $('#refresh').value = state.st.refresh || 0;
     $('#optHideVim').checked = !!state.st.hideVim;
@@ -1347,7 +1333,7 @@
 
   function init() {
     // separator colour choices
-    var sc = $('#sepColor');
+    var sc = $('#ruleColor');
     COLOURS.forEach(function (c) {
       var o = document.createElement('option');
       o.value = c; o.textContent = c;
@@ -1363,16 +1349,11 @@
     });
     ps.addEventListener('change', function () {
       if (!ps.value) return;
-      var keep = state.dividerSet
-        ? { divider: state.divider, sep: state.sep, sepColor: state.sepColor, dividerSet: true }
-        : {};
-      state = Object.assign(clone(DEFAULTS), clone(PRESETS[ps.value].cfg), keep);
+      state = Object.assign(clone(DEFAULTS), clone(PRESETS[ps.value].cfg));
       selected = null;
       ps.value = '';
       writeOptions(); save(); renderPalette(); renderRows(); update();
-      window.toast(state.dividerSet
-        ? 'Preset loaded — your divider setting was kept'
-        : 'Preset loaded');
+      window.toast('Preset loaded');
     });
 
     // terminal colour schemes and fonts (preview only)
@@ -1421,31 +1402,12 @@
       commit();
     });
     $('#sample').addEventListener('change', function () { renderPalette(); renderRows(); update(); });
-    ['#sep', '#sepColor', '#optAlign', '#optRule', '#optIcons', '#optFit',
-     '#optLinks', '#optDivider', '#padding', '#refresh', '#optHideVim'].forEach(function (s) {
+    ['#ruleColor', '#optAlign', '#optRule', '#optIcons', '#optFit',
+     '#optLinks', '#padding', '#refresh', '#optHideVim'].forEach(function (s) {
       $(s).addEventListener('change', readOptions);
     });
     $('#padding').addEventListener('input', readOptions);
     $('#refresh').addEventListener('input', readOptions);
-    // Typing a mark is an unambiguous request for a divider, and clearing the
-    // field is an unambiguous request for none — so the checkbox follows.
-    $('#sep').addEventListener('input', function () {
-      $('#optDivider').checked = $('#sep').value.trim().length > 0;
-      state.dividerSet = true;
-      readOptions();
-      markPresets();
-    });
-    $('#optDivider').addEventListener('change', function () { state.dividerSet = true; });
-
-    $('#sepPresets').addEventListener('click', function (e) {
-      var b = e.target.closest('[data-sep]');
-      if (!b) return;
-      $('#sep').value = b.dataset.sep;
-      $('#optDivider').checked = b.dataset.sep.trim().length > 0;
-      state.dividerSet = true;
-      readOptions();
-      markPresets();
-    });
 
     $('#addRow').addEventListener('click', function () {
       state.rows.push([]);
