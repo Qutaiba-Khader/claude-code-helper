@@ -18,7 +18,7 @@
       <a href="../../">All tools</a>
       <a href="../../docs/">Docs</a>
       <a href="https://github.com/Qutaiba-Khader/claude-code-helper">GitHub</a>
-      <button class="btn btn-ghost btn-sm" id="theme" title="Toggle light and dark" aria-label="Toggle light and dark">◐</button>
+      <button class="btn btn-ghost btn-sm theme-toggle" id="theme" title="Toggle light and dark" aria-label="Toggle light and dark"><span class="tt-disc"></span></button>
     </nav>
   </div>
 </header>
@@ -53,38 +53,8 @@
       <p class="rail-foot">Drag into a row, or click to append.</p>
     </aside>
 
-    <!-- terminal + rows -->
+    <!-- rows -->
     <div class="stage">
-
-      <!-- the signature element: a real terminal window -->
-      <div class="termwin">
-        <div class="termwin-bar">
-          <span class="tw-dots"><i></i><i></i><i></i></span>
-          <span class="tw-title" id="termTitle">claude</span>
-          <span class="spacer"></span>
-          <select id="sample" aria-label="Sample session data" class="tw-select">
-            <option value="mid">mid-session</option>
-            <option value="fresh">fresh session</option>
-            <option value="limits">near the limits</option>
-            <option value="bare">no subscription data</option>
-          </select>
-          <select id="scheme" aria-label="Terminal colour scheme" class="tw-select"></select>
-          <select id="font" aria-label="Terminal font" class="tw-select"></select>
-          <input type="range" id="fontSize" min="10" max="20" step="1" value="13" aria-label="Terminal font size" class="tw-range">
-        </div>
-        <div class="termwin-body">
-          <div class="term-scroll" aria-hidden="true">
-            <span class="tsl">› claude</span>
-            <span class="tsl dim">Reading tools/statusline/app.js…</span>
-            <span class="tsl dim">Edited 2 files · +41 −7</span>
-          </div>
-          <div class="term" id="term" aria-label="Status line preview"></div>
-        </div>
-      </div>
-
-      <div id="warn"></div>
-
-      <!-- rows -->
       <div class="rows-head">
         <span class="rows-title">Rows</span>
         <span class="rows-hint">each row is one line in the terminal</span>
@@ -92,7 +62,56 @@
         <button class="btn btn-sm" id="addRow">+ Add row</button>
       </div>
       <div id="rows"></div>
+      <div id="warn"></div>
     </div>
+
+    <!-- live terminal -->
+    <aside class="viewer">
+      <div class="termwin">
+        <div class="termwin-bar">
+          <span class="tw-dots"><i></i><i></i><i></i></span>
+          <span class="tw-title" id="termTitle">claude</span>
+        </div>
+        <div class="termwin-body">
+          <div class="term-scroll" aria-hidden="true">
+            <span class="tsl"><b class="p">&gt;</b> add a status line</span>
+            <span class="tsl d">⏺ Reading tools/statusline/app.js</span>
+            <span class="tsl d">⏺ Update(app.js)</span>
+            <span class="tsl d">  ⎿ Updated with 41 additions and 7 removals</span>
+            <span class="tsl">⏺ Done — the layout is wired up.</span>
+          </div>
+          <div class="term" id="term" aria-label="Status line preview"></div>
+          <div class="term-input" aria-hidden="true">
+            <span class="ti-box"><b class="p">&gt;</b> <span class="ti-cursor"></span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="viewer-controls">
+        <label class="vc"><span>Session</span>
+          <select id="sample" aria-label="Sample session data">
+            <option value="mid">mid-session</option>
+            <option value="fresh">fresh session</option>
+            <option value="limits">near the limits</option>
+            <option value="bare">no subscription data</option>
+          </select>
+        </label>
+        <label class="vc"><span>Theme</span>
+          <select id="scheme" aria-label="Terminal colour scheme"></select>
+        </label>
+        <label class="vc"><span>Font</span>
+          <select id="font" aria-label="Terminal font"></select>
+        </label>
+        <label class="vc"><span>Size</span>
+          <input type="range" id="fontSize" min="10" max="20" step="1" value="13" aria-label="Terminal font size">
+        </label>
+      </div>
+      <p class="hint">
+        Colours are standard ANSI — the exact shade comes from your terminal's theme, so this
+        picker shows how the layout lands in each one. Font and size are preview only; a status
+        line cannot change either.
+      </p>
+    </aside>
   </div>
 
   <!-- ══════════════ 2 · REFINE ══════════════ -->

@@ -221,3 +221,12 @@ pre.code {
     animation-duration: .01ms !important;
   }
 }
+
+/* Theme toggle: a half-filled disc drawn in CSS, so it renders identically
+   everywhere instead of depending on a glyph the system font may not have. */
+.theme-toggle { padding: 6px 8px; line-height: 0; }
+.tt-disc {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: linear-gradient(to right, currentColor 0 50%, transparent 50% 100%);
+}

@@ -120,8 +120,10 @@
     t.style.setProperty('--term-caret', s.n[2]);
     t.style.setProperty('--term-font', (FONTS[look.font] || FONTS.system).stack);
     t.style.setProperty('--term-size', look.size + 'px');
-    var body = document.querySelector('.termwin-body');
-    if (body) body.style.background = s.bg;
+    ['.termwin-body', '.termwin-bar'].forEach(function (sel) {
+      var n = document.querySelector(sel);
+      if (n && sel === '.termwin-body') n.style.background = s.bg;
+    });
   }
 
   // ---------------------------------------------------------------- presets
