@@ -590,7 +590,8 @@
       }
       row.forEach(function (cell, c) { chips.appendChild(makeChip(cell, r, c)); });
 
-      // type anything straight into the row — a divider, a label, a symbol
+      // type anything straight into the row — a divider, a label, an emoji.
+      // Enter keeps you typing; clicking away commits it just the same.
       var add = document.createElement('input');
       add.type = 'text';
       add.className = 'row-add';
@@ -598,19 +599,29 @@
       add.spellcheck = false;
       add.setAttribute('aria-label', 'Add text to row ' + (r + 1));
       add.dataset.row = r;
-      add.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter') return;
-        e.preventDefault();
+
+      var done = false;
+      function commitText(keepTyping) {
+        if (done) return;                 // Enter re-renders, so blur must not fire again
         var v = add.value;
         if (!v.length) return;
+        done = true;
         state.rows[r].push({ f: 'text', c: 'dim', t: v });
         selected = null;
         save();
         renderRows();
         update();
-        var next = document.querySelector('.row-add[data-row="' + r + '"]');
-        if (next) next.focus();
+        if (keepTyping) {
+          var next = document.querySelector('.row-add[data-row="' + r + '"]');
+          if (next) next.focus();
+        }
+      }
+      add.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); commitText(true); }
+        else if (e.key === 'Escape') { add.value = ''; done = true; add.blur(); }
       });
+      add.addEventListener('blur', function () { commitText(false); });
+
       chips.appendChild(add);
 
       var tools = document.createElement('div');
