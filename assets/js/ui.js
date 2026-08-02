@@ -51,6 +51,39 @@
     return Promise.resolve(fallback());
   };
 
+  // ---- save and load a file --------------------------------------------
+  window.downloadFile = function (name, text, mime) {
+    var blob = new Blob([text], { type: mime || 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  };
+
+  // Reads a picked file and hands back parsed JSON, or reports why it could not.
+  window.pickJSON = function (input, onLoad) {
+    input.value = '';
+    input.onchange = function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var data;
+        try {
+          data = JSON.parse(String(reader.result));
+        } catch (e) {
+          window.toast('That file is not valid JSON');
+          return;
+        }
+        onLoad(data, file.name);
+      };
+      reader.onerror = function () { window.toast('Could not read that file'); };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   // Any [data-copy-btn] marks itself done for a moment after a successful copy.
   window.flashButton = function (btn, label) {
     if (!btn) return;

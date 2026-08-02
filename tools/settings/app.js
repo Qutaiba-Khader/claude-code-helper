@@ -476,6 +476,44 @@
       selected = b.dataset.key;
       render();
     });
+    // Export the file itself, so it can be dropped straight into place.
+    $('#export').addEventListener('click', function () {
+      var keys = Object.keys(state.chosen);
+      if (!keys.length) { window.toast('Nothing to export yet'); return; }
+      window.downloadFile(scopeInfo().path.split('/').pop(), json() + '\n');
+      window.toast('Saved ' + scopeInfo().path.split('/').pop());
+    });
+
+    // Import accepts a real settings.json: anything it recognises is picked up,
+    // and anything it does not is reported rather than silently dropped.
+    $('#import').addEventListener('click', function () {
+      window.pickJSON($('#importFile'), function (data, name) {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+          window.toast('That file is not a settings object');
+          return;
+        }
+        var found = 0, unknown = [];
+        function walk(obj, prefix) {
+          Object.keys(obj).forEach(function (k) {
+            var key = prefix ? prefix + '.' + k : k;
+            var v = obj[k];
+            if (BY_KEY[key]) { state.chosen[key] = v; found++; return; }
+            if (v && typeof v === 'object' && !Array.isArray(v) && !prefix) {
+              walk(v, key);
+              return;
+            }
+            unknown.push(key);
+          });
+        }
+        walk(data, '');
+        commit();
+        window.toast(found
+          ? 'Loaded ' + found + ' setting' + (found === 1 ? '' : 's') + ' from ' + name +
+            (unknown.length ? ' · ' + unknown.length + ' not recognised' : '')
+          : 'Nothing in ' + name + ' matched a known setting');
+      });
+    });
+
     $('#clear').addEventListener('click', function () {
       state.chosen = {};
       selected = null;

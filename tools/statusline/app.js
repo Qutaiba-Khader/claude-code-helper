@@ -1538,6 +1538,29 @@
       commit();
     });
 
+    // Export is the config itself, so a saved file is also a valid CONFIG line.
+    $('#export').addEventListener('click', function () {
+      window.downloadFile('claude-statusline.json', configJSON() + '\n');
+      window.toast('Saved claude-statusline.json');
+    });
+
+    $('#import').addEventListener('click', function () {
+      window.pickJSON($('#importFile'), function (data, name) {
+        if (!data || !Array.isArray(data.rows)) {
+          window.toast('That file has no rows — is it a status line export?');
+          return;
+        }
+        data.rows = data.rows.map(function (r) {
+          return (Array.isArray(r) ? r : []).filter(function (c) { return c && FIELD[c.f]; });
+        });
+        state = Object.assign(clone(DEFAULTS), data);
+        state.st = Object.assign(clone(DEFAULTS.st), data.st || {});
+        selected = null;
+        writeOptions(); save(); renderPalette(); renderRows(); update();
+        window.toast('Loaded ' + name);
+      });
+    });
+
     $('#reset').addEventListener('click', function () {
       state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
       selected = null;

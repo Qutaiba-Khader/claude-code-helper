@@ -6,8 +6,8 @@
 <title>settings.json explorer — Claude Code Helper</title>
 <meta name="description" content="Browse every Claude Code setting with its type, default and scope, and assemble a settings.json you can paste.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙</text></svg>">
-<link rel="stylesheet" href="../../assets/css/base.css?v=v22">
-<link rel="stylesheet" href="app.css?v=v22">
+<link rel="stylesheet" href="../../assets/css/base.css?v=v23">
+<link rel="stylesheet" href="app.css?v=v23">
 </head>
 <body>
 
@@ -38,7 +38,10 @@
         <option value="local">.claude/settings.local.json</option>
         <option value="managed">managed-settings.json</option>
       </select>
-      <button class="btn btn-sm" id="share">Copy share link</button>
+      <button class="btn btn-sm" id="share">Copy link</button>
+      <button class="btn btn-sm" id="export">Export</button>
+      <button class="btn btn-sm" id="import">Import</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
       <button class="btn btn-sm" id="clear">Clear</button>
     </div>
   </div>
@@ -152,8 +155,8 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="../../assets/js/ui.js?v=v22"></script>
-<script src="settings-data.js?v=v22"></script>
-<script src="app.js?v=v22"></script>
+<script src="../../assets/js/ui.js?v=v23"></script>
+<script src="settings-data.js?v=v23"></script>
+<script src="app.js?v=v23"></script>
 </body>
 </html>
