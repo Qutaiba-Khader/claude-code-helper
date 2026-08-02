@@ -1,0 +1,1 @@
+{"cwd":"/tmp","model":{"id":"claude-opus-5[1m]","display_name":"Opus 5"},"workspace":{"current_dir":"/tmp"},"context_window":{"total_input_tokens":999000,"total_output_tokens":4000,"context_window_size":1000000,"used_percentage":99.9,"remaining_percentage":0.1},"exceeds_200k_tokens":true}

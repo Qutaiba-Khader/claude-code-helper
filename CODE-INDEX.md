@@ -150,6 +150,16 @@ State is just `{ scope, chosen: { "<dotted.key>": value } }`; everything else is
 
 ---
 
+## `test/`
+
+`run.sh` renders every payload in `test/payloads/` through two configs — the shipped default and
+one using every field with `align:true` — and compares `od -c` against `test/expected/`. It runs
+with `LC_ALL` and `LANG` unset so the script's locale probe is exercised, pins the clock with
+`EPOCHSECONDS` and the width with `COLUMNS` so snapshots are stable, and fails on any byte reaching
+stderr. `--snapshot` re-records, `--bench` times it and counts processes.
+
+---
+
 ## `docs/`
 
 | File | Contents |

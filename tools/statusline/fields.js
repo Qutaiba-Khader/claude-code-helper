@@ -110,9 +110,11 @@
       preview: function (p) { var d = get(p, 'workspace.project_dir'); return d ? d.split('/').pop() : ''; } },
     { id: 'branch', group: 'Project', label: 'git branch', hint: 'Branch, with * when the tree is dirty',
       icon: '⎇',
+      dirty: true,
       preview: function (p, o, cell) {
         var b = get(p, '_git_branch'); if (!b) return '';
-        return af(cell, ico(o, '⎇', 'git:') + ' ') + b + (get(p, '_git_dirty') ? '*' : '');
+        var star = (cell && cell.t === 'nodirty') ? '' : (get(p, '_git_dirty') ? '*' : '');
+        return af(cell, ico(o, '⎇', 'git:') + ' ') + b + star;
       } },
     { id: 'repo', group: 'Project', label: 'owner/repo', hint: 'From the origin remote',
       preview: function (p) {

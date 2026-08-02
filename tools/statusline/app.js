@@ -906,6 +906,30 @@
       box.appendChild(rr);
     }
 
+    if (f.dirty) {
+      var dr = document.createElement('div');
+      dr.className = 'irow';
+      var dw = document.createElement('div');
+      var dl = document.createElement('label');
+      dl.className = 'check';
+      var dc = document.createElement('input');
+      dc.type = 'checkbox';
+      dc.checked = cell.t !== 'nodirty';
+      dc.addEventListener('change', function () {
+        if (dc.checked) delete cell.t; else cell.t = 'nodirty';
+        commit();
+      });
+      dl.append(dc, document.createTextNode('Mark the branch with * when the tree is dirty'));
+      var dn = document.createElement('p');
+      dn.className = 'hint';
+      dn.style.margin = '0';
+      dn.textContent = 'This runs git diff over the working tree — a few hundred milliseconds on a ' +
+                       'large repo, and the slowest thing a status line does. Turn it off there.';
+      dw.append(dl, dn);
+      dr.appendChild(dw);
+      box.appendChild(dr);
+    }
+
     if (cell.c === 'ramp' || cell.c === 'heat') box.appendChild(baseColourPicker(cell));
     if (cell.c === 'ramp') box.appendChild(rampEditor(cell, f));
 
@@ -1742,7 +1766,11 @@
       '   ' + settingsBlock('bash ~/.claude/statusline-command.sh'),
       '',
       '   If ~/.claude/settings.json is a symlink, edit the file it points at.',
-      '   Use an absolute path if ~ is not expanded in your setup.',
+      '',
+      '   On Windows, ~ is not expanded and `bash` can resolve to the WSL stub in',
+      '   AppData\\Local\\Microsoft\\WindowsApps, so give both paths in full:',
+      '',
+      '     "command": "\\"C:/Program Files/Git/bin/bash.exe\\" \\"C:/Users/<you>/.claude/statusline-command.sh\\""',
       '',
       '3. Verify it by piping a sample payload through the script:',
       '',

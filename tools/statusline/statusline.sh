@@ -9,18 +9,29 @@
 
 CONFIG='{"v":2,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"bar_tokens","c":"ramp","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","b":"dim"}],[{"f":"rule","c":"grey"}]]}'
 
+# Bash counts ${#s} and ${s:i:1} in BYTES unless the locale is UTF-8, and Claude
+# Code runs the status line with LANG empty — which silently makes every 3-byte
+# glyph three columns wide and throws the padding and the rule out. Pick the
+# first locale that measures a box-drawing character as one character.
+if [ -z "${LC_ALL:-}" ]; then
+  for _loc in "${LANG:-}" C.UTF-8 en_US.UTF-8 UTF-8; do
+    [ -n "$_loc" ] || continue
+    LC_ALL=$_loc
+    _probe='─'
+    [ ${#_probe} -eq 1 ] && break
+    LC_ALL=''
+  done
+  [ -n "${LC_ALL:-}" ] && export LC_ALL
+fi
+
 input=$(cat)
 
 # --- payload -> shell vars -------------------------------------------------
 # \x1f (unit separator) keeps empty fields intact; a whitespace IFS would
 # collapse runs of them and shift every value into the wrong variable.
-IFS=$'\037' read -r \
-  p_cwd p_pdir p_model p_model_id p_in p_out p_ctx p_ctxpct p_ctxleft \
-  p_rl5 p_rl5r p_rl7 p_rl7r p_cost p_effort p_think p_fast p_style \
-  p_version p_session p_vim p_agent p_owner p_repo p_prnum p_prstate p_prurl \
-  p_wt p_wtbranch p_gwt p_dur p_apidur p_added p_removed p_over200k \
-  p_cread p_cwrite p_adddirs p_sid \
-  cfg_align cfg_icons cfg_links _cells <<<"$(
+# jq on Windows writes stdout in text mode, so its output arrives with CRs
+# welded on. Stripping them is a builtin substitution and costs nothing.
+_JQ=$(
   printf '%s\n%s' "$input" "$CONFIG" | jq -j -s '
     def s: if . == null then "" else tostring end;
     def b(d): if . == null then d else . end | tostring;
@@ -73,7 +84,15 @@ IFS=$'\037' read -r \
               ) | join("\u001d")
             ) | join("\u001d") ) ]
     ) | join("\u001f")' 2>/dev/null
-)"
+)
+IFS=$'\037' read -r \
+  p_cwd p_pdir p_model p_model_id p_in p_out p_ctx p_ctxpct p_ctxleft \
+  p_rl5 p_rl5r p_rl7 p_rl7r p_cost p_effort p_think p_fast p_style \
+  p_version p_session p_vim p_agent p_owner p_repo p_prnum p_prstate p_prurl \
+  p_wt p_wtbranch p_gwt p_dur p_apidur p_added p_removed p_over200k \
+  p_cread p_cwrite p_adddirs p_sid \
+  cfg_align cfg_icons cfg_links _cells <<<"${_JQ//$'\r'/}"
+
 [ -n "$p_cwd" ] || p_cwd="$PWD"
 
 RST=$'\033[0m'
@@ -153,7 +172,7 @@ ctxsize() {  # 1000000 -> 1M, 200000 -> 200k
 
 # $EPOCHSECONDS avoids forking date on every countdown (bash 5+; falls back once)
 NOW=${EPOCHSECONDS:-}
-[ -n "$NOW" ] || NOW=$(date +%s)
+[ -n "$NOW" ] || printf -v NOW '%(%s)T' -1
 
 countdown() {  # unix epoch seconds, or an ISO-8601 timestamp
   local raw=$1 epoch left
@@ -251,7 +270,10 @@ render() {
       dirty=''
       if br=$(git --no-optional-locks -C "$p_cwd" rev-parse --abbrev-ref HEAD 2>/dev/null); then
         [ "$br" = HEAD ] && br=$(git --no-optional-locks -C "$p_cwd" rev-parse --short HEAD 2>/dev/null)
-        git --no-optional-locks -C "$p_cwd" diff --quiet --ignore-submodules HEAD 2>/dev/null || dirty='*'
+        # the dirty check walks the worktree — a few hundred ms on a big repo,
+        # so a layout can turn it off with t:"nodirty"
+        [ "$txt" = nodirty ] ||
+          git --no-optional-locks -C "$p_cwd" diff --quiet --ignore-submodules HEAD 2>/dev/null || dirty='*'
         _R="$a$br$dirty"
       elif [ -n "$p_wtbranch" ]; then
         _R="$a$p_wtbranch"

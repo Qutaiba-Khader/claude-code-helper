@@ -157,6 +157,14 @@ sets them.
   breaks boolean options; the script uses an explicit null check instead.
 - **Field parsing uses `IFS=$'\037'`.** A whitespace `IFS` collapses runs of empty fields and
   shifts every later value into the wrong variable.
+- **A UTF-8 locale is picked at startup.** Claude Code runs the status line with `LANG` empty and
+  `LC_ALL` unset, and without a UTF-8 locale bash counts `${#s}` in *bytes* — so every 3-byte glyph
+  measures three columns wide and the padding and the rule are wrong. The script probes for a
+  locale that measures `─` as one character; an `LC_ALL` you set yourself still wins.
+- **jq output is stripped of CRs.** On Windows jq writes stdout in text mode, so fields arrive with
+  a `\r` welded on and options like a cell's base colour are silently ignored.
+- **The dirty `*` is optional.** It runs `git diff` over the working tree — a few hundred
+  milliseconds on a large repo, and the slowest thing a status line does. Turn it off per layout.
 - **Emoji work, and are measured properly.** Column widths are counted in display
   cells rather than characters, so an emoji or a CJK glyph counts as two and combining
   marks and variation selectors count as none. Without that, one emoji shifts every
@@ -216,6 +224,20 @@ python3 -m http.server 8000
 
 `file://` will not work: the builder fetches `statusline.sh` and `tools.json`, which CORS blocks
 on the file protocol.
+
+## Tests
+
+```bash
+test/run.sh              # every payload against the default and all-fields layouts
+test/run.sh --snapshot   # record the current output as expected
+test/run.sh --bench      # time it and count the processes it starts
+```
+
+Assertions are on `od -c`, not the visible string — a dropped colour, a CR welded onto a field and
+a width measured in bytes are all invisible in plain text. The harness runs with `LC_ALL` and
+`LANG` unset, exactly as Claude Code spawns the script, so the locale probe is under test rather
+than papered over. Payloads cover an empty object, invalid JSON, 0% and 99.9% context, both
+`resets_at` formats, 200k and 1M models, and one with every optional block populated.
 
 ## Contributing
 
