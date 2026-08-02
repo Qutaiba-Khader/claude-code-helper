@@ -26,17 +26,17 @@
 /* ══════════ workbench: field rail + stage ══════════ */
 .workbench {
   display: grid; gap: 14px; align-content: start;
-  grid-template-columns: 218px minmax(0, 1fr) minmax(360px, 430px);
+  grid-template-columns: 200px minmax(320px, 1fr) minmax(430px, 620px);
   align-items: start;
 }
-@media (max-width: 1180px) {
+@media (max-width: 1320px) {
   .workbench { grid-template-columns: 200px minmax(0, 1fr); }
-  .viewer { grid-column: 1 / -1; grid-row: 1; }
+  .viewer { grid-column: 1 / -1; grid-row: 1; position: static; }
 }
 @media (max-width: 780px) { .workbench { grid-template-columns: 1fr; } }
 
 .viewer { position: sticky; top: 68px; display: grid; gap: 10px; }
-@media (max-width: 1180px) { .viewer { position: static; } }
+
 
 /* ---------- field rail ---------- */
 .rail {
@@ -104,7 +104,15 @@
   background: var(--term-bg, #12151b);
   padding: 12px 13px 13px;
   overflow-x: auto;
-  min-height: 210px;
+  min-height: 200px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--term-fg, #dfe4ee) 26%, transparent) transparent;
+}
+.termwin-body::-webkit-scrollbar { height: 8px; }
+.termwin-body::-webkit-scrollbar-track { background: transparent; }
+.termwin-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--term-fg, #dfe4ee) 24%, transparent);
+  border-radius: 4px;
 }
 .term-scroll { display: block; margin-bottom: 10px; }
 .tsl {
@@ -145,7 +153,7 @@
 
 /* ---------- viewer controls ---------- */
 .viewer-controls {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;
   padding: 11px; background: var(--bg-2);
   border: 1px solid var(--line); border-radius: var(--radius);
 }

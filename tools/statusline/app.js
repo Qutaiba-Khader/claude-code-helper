@@ -92,7 +92,7 @@
   };
 
   // Preview-only look. Not part of the config: it changes nothing in the script.
-  var look = { scheme: 'vscode-dark', font: 'system', size: 13 };
+  var look = { scheme: 'vscode-dark', font: 'system', size: 12 };
 
   var ANSI_INDEX = { black: 0, red: 1, green: 2, yellow: 3, blue: 4, magenta: 5, cyan: 6, white: 7 };
 
@@ -326,7 +326,7 @@
     } catch (e) { /* keep the defaults */ }
     if (!SCHEMES[look.scheme]) look.scheme = 'vscode-dark';
     if (!FONTS[look.font]) look.font = 'system';
-    look.size = Math.min(20, Math.max(10, Number(look.size) || 13));
+    look.size = Math.min(20, Math.max(9, Number(look.size) || 12));
   }
   function load() {
     var hash = location.hash.match(/[#&]c=([A-Za-z0-9_-]+)/);
@@ -789,11 +789,6 @@
       term.appendChild(document.createTextNode('\n'));
       term.appendChild(span((state.icons ? '─' : '-').repeat(wide), state.sepColor, p));
     }
-    term.appendChild(document.createTextNode('\n'));
-    var caret = document.createElement('span');
-    caret.className = 'caret';
-    caret.textContent = '> ';
-    term.appendChild(caret);
     warn();
   }
 
