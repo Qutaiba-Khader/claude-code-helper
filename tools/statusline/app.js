@@ -659,6 +659,73 @@
     if (node) node.classList.add('is-target');
   }
 
+  // The cell, drawn the size you can actually read, on a terminal background.
+  // For a ramp it shows the value at every band rather than only the live one.
+  function cellPreview(cell, f) {
+    var p = currentSample();
+    var box = document.createElement('div');
+    box.className = 'cell-preview';
+
+    var text = previewCell(cell, p) || (f.custom ? (cell.t || 'text') : '—');
+    var isRamp = cell.c === 'ramp';
+
+    var main = document.createElement('div');
+    main.className = 'cp-main';
+    main.style.background = scheme().bg;
+
+    var sample = document.createElement('span');
+    sample.textContent = text;
+    sample.style.fontFamily = (FONTS[look.font] || FONTS.system).stack;
+    if (isRamp) {
+      sample.style.color = rampColour(cell, f.pct ? f.pct(p) : 0);
+    } else if (cell.c === 'heat') {
+      sample.style.color = heatColour(f.pct ? f.pct(p) : 0);
+    } else {
+      sample.style.color = swatchHex(cell.c || 'default');
+      if ((cell.c || '').indexOf('bold-') === 0) sample.style.fontWeight = '700';
+      if (cell.c === 'dim') sample.style.opacity = '.75';
+    }
+    main.appendChild(sample);
+    box.appendChild(main);
+
+    if (isRamp && f.pct) {
+      // the same value in every band, so the progression is legible at a glance
+      var scale = document.createElement('div');
+      scale.className = 'cp-scale';
+      scale.style.background = scheme().bg;
+      var list = rampOf(cell);
+      var live = bandFor(f.pct(p));
+      for (var i = 0; i < RAMP_BANDS; i++) {
+        var step = document.createElement('div');
+        step.className = 'cp-step' + (i === live ? ' is-live' : '');
+        var pctLabel = document.createElement('em');
+        pctLabel.textContent = (i * 10) + '%';
+        var val = document.createElement('span');
+        val.textContent = sampleAt(f, i * 10 + 5) || '·';
+        val.style.color = swatchHex(list[i]);
+        val.style.fontFamily = (FONTS[look.font] || FONTS.system).stack;
+        step.append(pctLabel, val);
+        scale.appendChild(step);
+      }
+      box.appendChild(scale);
+    }
+    return box;
+  }
+
+  // What this field would read at a made-up percentage — used by the ramp scale.
+  function sampleAt(f, pctv) {
+    if (f.id === 'tokens_pct' || f.id === 'ctx_pct') return Math.floor(pctv) + '%';
+    if (f.id === 'ctx_left') return (100 - Math.floor(pctv)) + '%';
+    if (f.id === 'rl5' || f.id === 'rl5_bare') return Math.floor(pctv) + '%';
+    if (f.id === 'rl7' || f.id === 'rl7_bare') return Math.floor(pctv) + '%';
+    if (f.id === 'ctx_bar') {
+      var filled = Math.floor(pctv / 10), out = '';
+      for (var i = 0; i < 10; i++) out += (i < filled) ? (state.icons ? '▰' : '#') : (state.icons ? '▱' : '.');
+      return out;
+    }
+    return Math.floor(pctv) + '%';
+  }
+
   // ------------------------------------------------------------- inspector
   function inspector() {
     var box = document.createElement('div');
@@ -682,6 +749,8 @@
     spacer.className = 'spacer';
     var close = iconBtn('✕', 'Close', function () { selected = null; renderRows(); });
     head.append(strong, hint, spacer, close);
+
+    box.appendChild(cellPreview(cell, f));
 
     var swWrap = document.createElement('div');
     var swLabel = document.createElement('label');
@@ -827,6 +896,7 @@
                     (i === bandFor(current) ? ' is-live' : '');
       b.style.background = swatchHex(c);
       b.title = (i * 10) + '–' + (i * 10 + 10) + '% · ' + c;
+      b.setAttribute('aria-label', (i * 10) + ' to ' + (i * 10 + 10) + ' per cent, ' + c);
       var lab = document.createElement('span');
       lab.textContent = i * 10;
       b.appendChild(lab);

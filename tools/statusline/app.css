@@ -387,7 +387,7 @@
 
 .ramp-strip { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
 .band {
-  position: relative; height: 34px; cursor: pointer; padding: 0;
+  position: relative; height: 42px; cursor: pointer; padding: 0;
   border: 1px solid transparent; border-radius: 3px;
   display: grid; align-items: end; justify-items: center;
 }
@@ -432,3 +432,40 @@
 .inline-num:disabled { opacity: .45; }
 .check .muted { color: var(--fg-3); }
 .check input[type=radio] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+/* ---------- the cell, big enough to actually judge ---------- */
+.cell-preview {
+  border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+  overflow: hidden; margin-bottom: 12px;
+}
+.cp-main {
+  padding: 14px 16px; min-height: 52px;
+  display: flex; align-items: center;
+  font-size: 15px; line-height: 1.4; white-space: pre; overflow-x: auto;
+}
+/* the same value at every band, so the progression reads at a glance */
+.cp-scale {
+  display: grid; grid-template-columns: repeat(10, 1fr);
+  border-top: 1px solid color-mix(in srgb, var(--line-2) 60%, transparent);
+}
+.cp-step {
+  display: grid; gap: 1px; justify-items: center;
+  padding: 7px 2px 8px; position: relative;
+  border-right: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+}
+.cp-step:last-child { border-right: 0; }
+.cp-step em {
+  font-family: var(--mono); font-size: .5625rem; font-style: normal;
+  color: color-mix(in srgb, var(--fg-3) 85%, transparent); letter-spacing: .02em;
+}
+.cp-step span { font-size: .6875rem; font-weight: 600; }
+.cp-step.is-live { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.cp-step.is-live::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--accent);
+}
+
+/* ---------- taller, labelled bands ---------- */
+.ramp-strip { grid-template-columns: repeat(10, 1fr); gap: 2px; }
+.band { height: 42px; }
+.band span { font-size: .625rem; }
