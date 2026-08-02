@@ -105,7 +105,7 @@ genuinely applies to everything: column alignment, Unicode icons and OSC 8 links
 
 Requirements: `jq` on `PATH`, plus `git` if you use the branch field.
 
-Any field that carries a percentage can be coloured **by value** instead of a fixed colour: set
+Any field that carries a percentage is coloured **by value** by default: set
 `"c": "ramp"` and `"r"` to ten comma-separated colour names, one per 10% band (0–9, 10–19, …
 90–100). The band is `floor(value * 10 / 100)`, clamped, so the colour changes as the value
 climbs. Fewer than ten names is fine — the list is stretched over the range.

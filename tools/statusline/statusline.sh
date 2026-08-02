@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"userhost","c":"bold-green"},{"f":"text","c":"grey","t":"|"},{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"heat"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"heat"}],[{"f":"rule","c":"grey"}]]}'
+CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"userhost","c":"bold-green"},{"f":"text","c":"grey","t":"|"},{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"}],[{"f":"tokens","c":"bold-magenta"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"green,green,green,green,green,yellow,yellow,red,red,bold-red"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"green,green,green,green,green,yellow,yellow,red,red,bold-red"},{"f":"text","c":"grey","t":"|"},{"f":"ctx_bar","c":"ramp","r":"green,green,green,green,green,yellow,yellow,red,red,bold-red"}],[{"f":"rule","c":"grey"}]]}'
 
 input=$(cat)
 

@@ -103,13 +103,15 @@
   // A ramp is ten colours, one per 10% of the value: 0-9, 10-19, … 90-100.
   var RAMP_BANDS = 10;
   var RAMP_PRESETS = {
-    'green to red':   ['green', 'green', 'green', 'green', 'green', 'yellow', 'yellow', 'red', 'red', 'red'],
+    'green to red':   ['green', 'green', 'green', 'green', 'green', 'yellow', 'yellow', 'red', 'red', 'bold-red'],
     'cool to warm':   ['blue', 'blue', 'cyan', 'cyan', 'green', 'green', 'yellow', 'yellow', 'red', 'red'],
     'quiet until 70': ['dim', 'dim', 'dim', 'dim', 'dim', 'dim', 'dim', 'yellow', 'red', 'bold-red'],
     'ten steps':      ['blue', 'bold-blue', 'cyan', 'bold-cyan', 'green', 'bold-green',
                        'yellow', 'bold-yellow', 'red', 'bold-red']
   };
-  function defaultRamp() { return RAMP_PRESETS['green to red'].slice(); }
+  var RAMP_DEFAULT = ['green', 'green', 'green', 'green', 'green',
+                      'yellow', 'yellow', 'red', 'red', 'bold-red'];
+  function defaultRamp() { return RAMP_DEFAULT.slice(); }
   function rampOf(cell) {
     if (!cell.r) return defaultRamp();
     var list = String(cell.r).split(',').map(function (x) { return x.trim(); }).filter(Boolean);
@@ -160,6 +162,8 @@
   var BAR = { f: 'text', c: 'grey', t: '|' };
   var DOT = { f: 'text', c: 'grey', t: '·' };
   function RULE(c) { return { f: 'rule', c: c || 'grey' }; }
+  // every percentage-carrying field in a preset is coloured by value
+  function BYVALUE(f) { return { f: f, c: 'ramp', r: RAMP_DEFAULT.join(',') }; }
   function isRuleRow(row) { return row.length === 1 && row[0].f === 'rule'; }
 
   // ---------------------------------------------------------------- presets
@@ -171,7 +175,7 @@
         rows: [
           [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }],
           [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }],
-          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }],
+          [BYVALUE('rl5'), BAR, BYVALUE('rl7'), BAR, BYVALUE('ctx_bar')],
           [RULE()]
         ]
       }
@@ -181,7 +185,7 @@
       cfg: {
         v: 1, rule: false, align: false, icons: true,
         rows: [[{ f: 'cwd', c: 'blue' }, DOT, { f: 'branch', c: 'yellow' }, DOT,
-                { f: 'model', c: 'cyan' }, DOT, { f: 'tokens_pct', c: 'heat' }]]
+                { f: 'model', c: 'cyan' }, DOT, BYVALUE('tokens_pct')]]
       }
     },
     context: {
@@ -190,7 +194,7 @@
         v: 1, rule: false, align: true, icons: true,
         rows: [
           [{ f: 'ctx_bar', c: 'ramp' }, { f: 'tokens', c: 'bold-magenta' }, { f: 'model', c: 'cyan' }],
-          [{ f: 'rl5', c: 'heat' }, { f: 'rl7', c: 'heat' }, { f: 'cost', c: 'dim' }]
+          [BYVALUE('rl5'), BYVALUE('rl7'), { f: 'duration', c: 'dim' }]
         ]
       }
     },
@@ -212,8 +216,8 @@
         v: 1, rule: true, align: true, icons: true,
         rows: [
           [{ f: 'userhost', c: 'bold-green' }, BAR, { f: 'cwd', c: 'bold-blue' }, BAR, { f: 'branch', c: 'bold-yellow' }, BAR, { f: 'repo', c: 'dim' }],
-          [{ f: 'tokens', c: 'bold-magenta' }, BAR, { f: 'ctx_bar', c: 'ramp' }, BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }, { f: 'fast', c: 'yellow' }],
-          [{ f: 'rl5', c: 'heat' }, BAR, { f: 'rl7', c: 'heat' }, BAR, { f: 'cost', c: 'dim' }, BAR, { f: 'version', c: 'dim' }],
+          [BYVALUE('tokens'), BAR, BYVALUE('ctx_bar'), BAR, { f: 'model_ctx', c: 'bold-cyan' }, BAR, { f: 'effort', c: 'dim' }, { f: 'fast', c: 'yellow' }],
+          [BYVALUE('rl5'), BAR, BYVALUE('rl7'), BAR, { f: 'duration', c: 'dim' }, BAR, { f: 'version', c: 'dim' }],
           [RULE()]
         ]
       }
@@ -1033,7 +1037,7 @@
     commit();
   }
   function defaultColour(id) {
-    if (FIELD[id] && FIELD[id].heat) return 'heat';
+    if (FIELD[id] && FIELD[id].heat) return 'ramp';
     return ({
       userhost: 'bold-green', user: 'bold-green', host: 'bold-green',
       cwd: 'bold-blue', cwd_base: 'bold-blue', project: 'bold-blue',
