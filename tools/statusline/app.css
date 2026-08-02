@@ -10,7 +10,7 @@
 }
 .page-head-text p { margin: 0; font-size: .9375rem; }
 .page-head-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.page-head-actions select { width: auto; }
+.page-head-actions select { width: auto; max-width: 100%; }
 
 .eyebrow .opt {
   font-size: .625rem; letter-spacing: .1em; color: var(--fg-3);
@@ -428,7 +428,7 @@
 }
 
 /* refresh: an event default, or a timer with its own box */
-.inline-num { width: 5.5ch; padding: 3px 5px; text-align: center; }
+.inline-num { width: 6ch; padding: 5px 6px; text-align: center; min-height: 26px; }
 .inline-num:disabled { opacity: .45; }
 .check .muted { color: var(--fg-3); }
 .check input[type=radio] { accent-color: var(--accent); width: 14px; height: 14px; }

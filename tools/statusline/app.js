@@ -497,7 +497,13 @@
       lab.dataset.row = r;
       lab.title = 'Drag to reorder this row';
       lab.setAttribute('aria-label', 'Row ' + (r + 1) + ', drag to reorder');
-      lab.append(el('span', 'rg', '⠿'), el('span', 'rn', String(r + 1)));
+      var grip = document.createElement('span');
+      grip.className = 'rg';
+      grip.textContent = '⠿';
+      var num = document.createElement('span');
+      num.className = 'rn';
+      num.textContent = String(r + 1);
+      lab.append(grip, num);
 
       var chips = document.createElement('div');
       chips.className = 'chips';
@@ -883,6 +889,32 @@
 
   // ------------------------------------------------------------ mutations
   function commit() { save(); renderRows(); update(); }
+
+  // Moving a row jumps unless you show it travelling. Measure before, re-render,
+  // then play each row from its old position to its new one.
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function animateRowChange(mutate, oldIndexOfNew) {
+    if (REDUCED || !document.querySelector('.row')) { mutate(); commit(); return; }
+
+    var before = Array.prototype.map.call(
+      document.querySelectorAll('.row'),
+      function (n) { return n.getBoundingClientRect().top; });
+
+    mutate();
+    commit();
+
+    var rows = document.querySelectorAll('.row');
+    Array.prototype.forEach.call(rows, function (n, j) {
+      var from = before[oldIndexOfNew(j)];
+      if (from === undefined) return;
+      var delta = from - n.getBoundingClientRect().top;
+      if (!delta) return;
+      n.animate(
+        [{ transform: 'translateY(' + delta + 'px)' }, { transform: 'translateY(0)' }],
+        { duration: 190, easing: 'cubic-bezier(.2,.7,.3,1)' }
+      );
+    });
+  }
   function addCell(fieldId, r, at) {
     if (!state.rows.length) state.rows.push([]);
     if (r === undefined || r === null || !state.rows[r]) r = state.rows.length - 1;
@@ -922,17 +954,19 @@
   function moveRow(r, dir) {
     var t = r + dir;
     if (t < 0 || t >= state.rows.length) return;
-    var tmp = state.rows[r];
-    state.rows[r] = state.rows[t];
-    state.rows[t] = tmp;
-    selected = null;
-    commit();
+    animateRowChange(function () {
+      var tmp = state.rows[r];
+      state.rows[r] = state.rows[t];
+      state.rows[t] = tmp;
+      selected = null;
+    }, function (j) { return j === r ? t : j === t ? r : j; });
   }
   function removeRow(r) {
-    state.rows.splice(r, 1);
-    if (!state.rows.length) state.rows.push([]);
-    selected = null;
-    commit();
+    animateRowChange(function () {
+      state.rows.splice(r, 1);
+      if (!state.rows.length) state.rows.push([]);
+      selected = null;
+    }, function (j) { return j < r ? j : j + 1; });
   }
 
   // ------------------------------------------------------------------ drag
@@ -1044,10 +1078,15 @@
   function moveRowTo(from, to) {
     if (to > from) to--;
     if (to === from) return;
-    var row = state.rows.splice(from, 1)[0];
-    state.rows.splice(Math.max(0, Math.min(to, state.rows.length)), 0, row);
-    selected = null;
-    commit();
+    var dest = Math.max(0, Math.min(to, state.rows.length - 1));
+    // where each row sat before the move, indexed by where it sits after it
+    var order = state.rows.map(function (_, i) { return i; });
+    order.splice(dest, 0, order.splice(from, 1)[0]);
+    animateRowChange(function () {
+      var row = state.rows.splice(from, 1)[0];
+      state.rows.splice(dest, 0, row);
+      selected = null;
+    }, function (j) { return order[j]; });
   }
 
   // Which row, and where in it, is the pointer over?
