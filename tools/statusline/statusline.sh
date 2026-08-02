@@ -81,7 +81,7 @@ RST=$'\033[0m'
 colour() {
   case "$1" in
     bold-*)  printf '\033[1;%sm' "$(basecode "${1#bold-}")" ;;
-    heat|default|"") : ;;
+    heat|ramp|default|"") : ;;
     *)       local b; b=$(basecode "$1"); [ -n "$b" ] && printf '\033[%sm' "$b" ;;
   esac
 }
@@ -92,6 +92,21 @@ basecode() {
     grey|gray) echo '38;5;244' ;; dim) echo 2 ;; *) echo '' ;;
   esac
 }
+# ramp <comma-separated-colours> <percentage> — picks the band the value falls in.
+# Ten bands: 0-9, 10-19, … 90-100. Fewer colours than bands is fine; the list
+# is stretched to cover the range.
+ramp_colour() {
+  local list=$1 pctv=${2%%.*} n i band
+  case "$pctv" in ''|*[!0-9]*) pctv=0 ;; esac
+  [ "$pctv" -gt 100 ] && pctv=100
+  IFS=',' read -r -a RC <<<"$list"
+  n=${#RC[@]}
+  [ "$n" -gt 0 ] || return
+  band=$(( pctv * n / 100 ))
+  [ "$band" -ge "$n" ] && band=$(( n - 1 ))
+  colour "${RC[$band]}"
+}
+
 # green under 50%, yellow 50-79%, red 80%+
 heat() {
   local p=${1%%.*}
@@ -274,14 +289,14 @@ vislen() {
 mapfile -t CELLS < <(printf '%s' "$CONFIG" | jq -r '
   .rows // [] | to_entries[] as $r | $r.value | to_entries[] |
   [ ($r.key|tostring), (.value.f // ""), (.value.c // ""), (.value.t // ""),
-    (if .value.i == false then "0" else "1" end) ]
+    (if .value.i == false then "0" else "1" end), (.value.r // "") ]
   | join("\u001f")' 2>/dev/null)
 
 declare -A TXT FMT LEN
 declare -a COUNT
 nrows=0; ncols=0
 for line in "${CELLS[@]}"; do
-  IFS=$'\037' read -r r f c t ci <<<"$line"
+  IFS=$'\037' read -r r f c t ci ramp <<<"$line"
   [ -n "$f" ] || continue
   # cells are laid out in the order they appear, gaps closed up per row
   idx=${COUNT[$r]:-0}; COUNT[$r]=$(( idx + 1 ))
@@ -289,6 +304,7 @@ for line in "${CELLS[@]}"; do
   TXT[$r,$idx]=$txt
   LEN[$r,$idx]=$(vislen "$txt")
   if [ "$c" = "heat" ]; then FMT[$r,$idx]=$(heat "$(heatval "$f")")
+  elif [ "$c" = "ramp" ] && [ -n "$ramp" ]; then FMT[$r,$idx]=$(ramp_colour "$ramp" "$(heatval "$f")")
   else FMT[$r,$idx]=$(colour "$c"); fi
   [ $(( r + 1 )) -gt $nrows ] && nrows=$(( r + 1 ))
   [ $(( idx + 1 )) -gt $ncols ] && ncols=$(( idx + 1 ))

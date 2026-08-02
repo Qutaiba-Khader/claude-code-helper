@@ -365,3 +365,37 @@
   color: var(--fg-3); border: 1px solid var(--line-2); border-radius: 2px;
   padding: 0 3px;
 }
+
+/* ---------- colour by value: ten bands across 0-100% ---------- */
+.sw.ramp { border-radius: 3px; }
+
+.ramp-editor {
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+  display: grid; gap: 10px;
+}
+.ramp-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ramp-title {
+  font-family: var(--mono); font-size: .6875rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3);
+}
+
+.ramp-strip { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+.band {
+  position: relative; height: 34px; cursor: pointer; padding: 0;
+  border: 1px solid transparent; border-radius: 3px;
+  display: grid; align-items: end; justify-items: center;
+}
+.band span {
+  font-family: var(--mono); font-size: .5625rem; font-weight: 700;
+  color: rgba(0,0,0,.62); padding-bottom: 2px;
+}
+.band:first-child { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
+.band:last-child  { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+.band.is-active { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg); z-index: 1; }
+/* where the current sample data actually falls */
+.band.is-live::before {
+  content: '▾'; position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  color: var(--fg); font-size: .625rem; line-height: 1;
+}
+.ramp-pick { display: grid; gap: 6px; }
+.ramp-presets { display: flex; gap: 5px; flex-wrap: wrap; }

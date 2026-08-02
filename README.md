@@ -93,6 +93,15 @@ CONFIG='{"v":1,"sep":" | ","sepColor":"grey","rule":true,"align":true,"icons":tr
 
 Requirements: `jq` on `PATH`, plus `git` if you use the branch field.
 
+Any field that carries a percentage can be coloured **by value** instead of a fixed colour: set
+`"c": "ramp"` and `"r"` to ten comma-separated colour names, one per 10% band (0–9, 10–19, …
+90–100). The band is `floor(value * 10 / 100)`, clamped, so the colour changes as the value
+climbs. Fewer than ten names is fine — the list is stretched over the range.
+
+```
+{"f":"ctx_pct","c":"ramp","r":"blue,cyan,cyan,green,green,yellow,yellow,magenta,red,red"}
+```
+
 A cell can carry `"i": false` to drop its built-in label — `out_tokens` normally renders
 `↑ 1k`, and with the label off it is just `1k`, so you can pair it with a symbol of your own.
 

@@ -96,6 +96,30 @@
 
   var ANSI_INDEX = { black: 0, red: 1, green: 2, yellow: 3, blue: 4, magenta: 5, cyan: 6, white: 7 };
 
+  // A ramp is ten colours, one per 10% of the value: 0-9, 10-19, … 90-100.
+  var RAMP_BANDS = 10;
+  var RAMP_PRESETS = {
+    'green to red':   ['green', 'green', 'green', 'green', 'green', 'yellow', 'yellow', 'red', 'red', 'red'],
+    'cool to warm':   ['blue', 'blue', 'cyan', 'cyan', 'green', 'green', 'yellow', 'yellow', 'red', 'red'],
+    'quiet until 70': ['dim', 'dim', 'dim', 'dim', 'dim', 'dim', 'dim', 'yellow', 'red', 'bold-red'],
+    'ten steps':      ['blue', 'bold-blue', 'cyan', 'bold-cyan', 'green', 'bold-green',
+                       'yellow', 'bold-yellow', 'red', 'bold-red']
+  };
+  function defaultRamp() { return RAMP_PRESETS['green to red'].slice(); }
+  function rampOf(cell) {
+    if (!cell.r) return defaultRamp();
+    var list = String(cell.r).split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    while (list.length < RAMP_BANDS) list.push(list[list.length - 1] || 'default');
+    return list.slice(0, RAMP_BANDS);
+  }
+  function bandFor(pctv) {
+    var n = Math.floor(Number(pctv) || 0);
+    if (n > 100) n = 100;
+    if (n < 0) n = 0;
+    return Math.min(RAMP_BANDS - 1, Math.floor(n * RAMP_BANDS / 100));
+  }
+  function rampColour(cell, pctv) { return swatchHex(rampOf(cell)[bandFor(pctv)]); }
+
   function scheme() { return SCHEMES[look.scheme] || SCHEMES['vscode-dark']; }
 
   function swatchHex(c) {
@@ -306,6 +330,7 @@
           var o = { f: cell.f, c: cell.c || 'default' };
           if (cell.f === 'text') o.t = cell.t || '';
           if (cell.i === false) o.i = false;
+          if (cell.c === 'ramp') o.r = rampOf(cell).join(',');
           return o;
         });
       })
@@ -512,9 +537,15 @@
 
     var sw = document.createElement('span');
     sw.className = 'swatch';
-    sw.style.background = cell.c === 'heat'
-      ? 'linear-gradient(135deg,#6cc17f 0 33%,#d9b25a 33% 66%,#e0685f 66%)'
-      : swatchHex(cell.c || 'default');
+    if (cell.c === 'heat') {
+      sw.style.background = 'linear-gradient(135deg,#6cc17f 0 33%,#d9b25a 33% 66%,#e0685f 66%)';
+    } else if (cell.c === 'ramp') {
+      sw.style.background = 'linear-gradient(90deg,' + rampOf(cell).map(function (c, i) {
+        return swatchHex(c) + ' ' + (i * 10) + '% ' + ((i + 1) * 10) + '%';
+      }).join(',') + ')';
+    } else {
+      sw.style.background = swatchHex(cell.c || 'default');
+    }
 
     var name = document.createElement('span');
     name.className = 'name';
@@ -592,27 +623,42 @@
 
     var choices = COLOURS.slice();
     COLOURS.forEach(function (c) { if (c !== 'default' && c !== 'dim') choices.push('bold-' + c); });
-    if (f.heat) choices.unshift('heat');
+    if (f.heat) { choices.unshift('heat'); choices.unshift('ramp'); }
 
     choices.forEach(function (c) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'sw' + (c === 'heat' ? ' heat' : '') + ((cell.c || 'default') === c ? ' is-on' : '');
+      b.className = 'sw' + (c === 'heat' ? ' heat' : '') + (c === 'ramp' ? ' ramp' : '') +
+                    ((cell.c || 'default') === c ? ' is-on' : '');
       b.dataset.c = c;
-      b.title = c === 'heat' ? 'auto: green / yellow / red by usage' : c;
-      if (c !== 'heat') {
+      b.title = c === 'heat' ? 'auto: green / yellow / red by usage'
+              : c === 'ramp' ? 'colour by value, in ten bands you choose'
+              : c;
+      if (c === 'ramp') {
+        b.style.background = 'linear-gradient(90deg,' + rampOf(cell).map(function (rc, i) {
+          return swatchHex(rc) + ' ' + (i * 10) + '% ' + ((i + 1) * 10) + '%';
+        }).join(',') + ')';
+      }
+      if (c !== 'heat' && c !== 'ramp') {
         b.style.background = swatchHex(c);
         if (c.indexOf('bold-') === 0) b.textContent = 'B';
         b.style.color = '#10131a';
         b.style.fontSize = '.625rem';
         b.style.fontWeight = '700';
       }
-      b.addEventListener('click', function () { cell.c = c; commit(); });
+      b.addEventListener('click', function () {
+        cell.c = c;
+        if (c === 'ramp' && !cell.r) cell.r = defaultRamp().join(',');
+        if (c === 'ramp') activeBand = 0;
+        commit();
+      });
       sws.appendChild(b);
     });
     swWrap.append(swLabel, sws);
 
     box.append(head, swWrap);
+
+    if (cell.c === 'ramp') box.appendChild(rampEditor(cell, f));
 
     if (f.icon) {
       var ir = document.createElement('div');
@@ -658,12 +704,108 @@
     return box;
   }
 
+  var activeBand = 0;
+
+  // Ten bands, each with its own colour. Pick a band, then pick its colour.
+  function rampEditor(cell, f) {
+    var list = rampOf(cell);
+    var box = document.createElement('div');
+    box.className = 'ramp-editor';
+
+    var head = document.createElement('div');
+    head.className = 'ramp-head';
+    var t = document.createElement('span');
+    t.className = 'ramp-title';
+    t.textContent = 'Colour by value';
+    var now = document.createElement('span');
+    now.className = 'hint';
+    now.style.margin = '0';
+    var current = f.pct ? Math.floor(Number(f.pct(currentSample())) || 0) : 0;
+    now.textContent = 'this session sits at ' + current + '%, in the ' +
+                      (bandFor(current) * 10) + '–' + (bandFor(current) * 10 + 10) + '% band';
+    head.append(t, now);
+
+    var strip = document.createElement('div');
+    strip.className = 'ramp-strip';
+    list.forEach(function (c, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'band' + (i === activeBand ? ' is-active' : '') +
+                    (i === bandFor(current) ? ' is-live' : '');
+      b.style.background = swatchHex(c);
+      b.title = (i * 10) + '–' + (i * 10 + 10) + '% · ' + c;
+      var lab = document.createElement('span');
+      lab.textContent = i * 10;
+      b.appendChild(lab);
+      b.addEventListener('click', function () { activeBand = i; renderRows(); });
+      strip.appendChild(b);
+    });
+
+    var pick = document.createElement('div');
+    pick.className = 'ramp-pick';
+    var pl = document.createElement('label');
+    pl.className = 'field';
+    pl.textContent = 'Colour for ' + (activeBand * 10) + '–' + (activeBand * 10 + 10) + '%';
+    var sws = document.createElement('div');
+    sws.className = 'swatches';
+    var opts = COLOURS.slice();
+    COLOURS.forEach(function (c) { if (c !== 'default' && c !== 'dim') opts.push('bold-' + c); });
+    opts.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sw' + (list[activeBand] === c ? ' is-on' : '');
+      b.dataset.c = c;
+      b.title = c;
+      b.style.background = swatchHex(c);
+      if (c.indexOf('bold-') === 0) { b.textContent = 'B'; b.style.color = '#10131a'; }
+      b.addEventListener('click', function () {
+        var next = rampOf(cell);
+        next[activeBand] = c;
+        cell.r = next.join(',');
+        commit();
+      });
+      sws.appendChild(b);
+    });
+    pick.append(pl, sws);
+
+    var pres = document.createElement('div');
+    pres.className = 'ramp-presets';
+    Object.keys(RAMP_PRESETS).forEach(function (name) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm';
+      b.textContent = name;
+      b.addEventListener('click', function () {
+        cell.r = RAMP_PRESETS[name].slice().join(',');
+        commit();
+      });
+      pres.appendChild(b);
+    });
+
+    var fill = document.createElement('button');
+    fill.type = 'button';
+    fill.className = 'btn btn-sm';
+    fill.textContent = 'fill from here';
+    fill.title = 'Copy this band\'s colour to every band above it';
+    fill.addEventListener('click', function () {
+      var next = rampOf(cell);
+      for (var i = activeBand; i < RAMP_BANDS; i++) next[i] = next[activeBand];
+      cell.r = next.join(',');
+      commit();
+    });
+    pres.appendChild(fill);
+
+    box.append(head, strip, pick, pres);
+    return box;
+  }
+
   // ------------------------------------------------------------ mutations
   function commit() { save(); renderRows(); update(); }
   function addCell(fieldId, r, at) {
     if (!state.rows.length) state.rows.push([]);
     if (r === undefined || r === null || !state.rows[r]) r = state.rows.length - 1;
     var cell = { f: fieldId, c: defaultColour(fieldId) };
+    if (cell.c === 'ramp') cell.r = defaultRamp().join(',');
     if (fieldId === 'text') cell.t = 'label';
     var idx = (at === undefined || at === null) ? state.rows[r].length : at;
     state.rows[r].splice(idx, 0, cell);
@@ -926,7 +1068,7 @@
         }
         var item = row[c] || { text: '', cell: { c: 'default' } };
         if (item.text) {
-          var node = span(item.text, item.cell.c, p, item.cell.f);
+          var node = span(item.text, item.cell.c, p, item.cell.f, item.cell);
           node.dataset.r = r;
           node.dataset.c = c;
           frag.appendChild(node);
@@ -978,7 +1120,7 @@
     return w > 0 ? Math.max(20, Math.floor(inner / w)) : 80;
   }
 
-  function span(text, colour, p, fieldId) {
+  function span(text, colour, p, fieldId, cell) {
     var s = document.createElement('span');
     s.textContent = text;
     if (state.links && (fieldId === 'pr')) {
@@ -989,6 +1131,9 @@
     if (colour === 'heat') {
       var f = FIELD[fieldId];
       s.style.color = heatColour(f && f.pct ? f.pct(p) : 0);
+    } else if (colour === 'ramp') {
+      var f2 = FIELD[fieldId];
+      s.style.color = rampColour(cell || {}, f2 && f2.pct ? f2.pct(p) : 0);
     } else {
       var bold = colour.indexOf('bold-') === 0;
       s.style.color = swatchHex(colour);
