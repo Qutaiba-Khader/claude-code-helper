@@ -532,8 +532,23 @@
       selected = { r: r, c: c };
       renderRows();
       renderPreview();
+      highlight(r, c);
     });
+    el.addEventListener('mouseenter', function () { highlight(r, c); });
+    el.addEventListener('mouseleave', clearHighlight);
+    el.addEventListener('focus', function () { highlight(r, c); });
+    el.addEventListener('blur', clearHighlight);
     return el;
+  }
+
+  function clearHighlight() {
+    var prev = document.querySelector('.term .is-target');
+    if (prev) prev.classList.remove('is-target');
+  }
+  function highlight(r, c) {
+    clearHighlight();
+    var node = document.querySelector('.term [data-r="' + r + '"][data-c="' + c + '"]');
+    if (node) node.classList.add('is-target');
   }
 
   // ------------------------------------------------------------- inspector
@@ -878,7 +893,8 @@
         var item = row[c] || { text: '', cell: { c: 'default' } };
         if (item.text) {
           var node = span(item.text, item.cell.c, p, item.cell.f);
-          if (selected && selected.r === r && selected.c === c) node.classList.add('is-target');
+          node.dataset.r = r;
+          node.dataset.c = c;
           frag.appendChild(node);
         }
         width += item.text.length;

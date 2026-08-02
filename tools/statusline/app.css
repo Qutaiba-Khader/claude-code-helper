@@ -178,13 +178,14 @@
 /* the status line row — indented two columns, exactly as Claude Code renders it */
 .term { display: block; padding-left: 2ch; min-height: 1.5em; margin-top: 2px; }
 .term .empty { opacity: .45; font-style: italic; }
-/* the cell you have selected, outlined where it lands in the terminal */
+/* the cell under the pointer, outlined where it lands in the terminal */
 .term .is-target {
   outline: 1px solid var(--accent);
   outline-offset: 1px;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
+.chip { transition: border-color .1s; }
 
 /* the built-in footer badges below it */
 .term-badges { display: block; padding-left: 2ch; margin-top: 2px; }
