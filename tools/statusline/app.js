@@ -290,6 +290,8 @@
   var DEFAULTS = {
     v: 1, sep: ' | ', sepColor: 'grey', rule: true, align: true, icons: true,
     fit: false, links: false, divider: true,
+    // set once you touch a divider control; presets stop overriding it after that
+    dividerSet: false,
     // settings.json options — the script ignores these, the installer applies them
     st: { padding: 0, refresh: 0, hideVim: false }
   };
@@ -320,6 +322,7 @@
       v: 1, sep: state.sep, sepColor: state.sepColor,
       rule: !!state.rule, align: !!state.align, icons: !!state.icons,
       fit: !!state.fit, links: !!state.links, divider: !!state.divider,
+      dividerSet: !!state.dividerSet,
       st: {
         padding: Number(state.st.padding) || 0,
         refresh: Number(state.st.refresh) || 0,
@@ -1297,6 +1300,13 @@
     update();
   }
 
+  function markPresets() {
+    document.querySelectorAll('#sepPresets [data-sep]').forEach(function (b) {
+      b.classList.toggle('is-on', b.dataset.sep === state.sep &&
+        (b.dataset.sep.trim().length > 0) === !!state.divider);
+    });
+  }
+
   function writeOptions() {
     $('#sep').value = state.sep;
     $('#sepColor').value = state.sepColor;
@@ -1306,10 +1316,7 @@
     $('#optFit').checked = !!state.fit;
     $('#optLinks').checked = !!state.links;
     $('#optDivider').checked = !!state.divider;
-    document.querySelectorAll('#sepPresets [data-sep]').forEach(function (b) {
-      b.classList.toggle('is-on', b.dataset.sep === state.sep &&
-        (b.dataset.sep.trim().length > 0) === !!state.divider);
-    });
+    markPresets();
     $('#padding').value = state.st.padding || 0;
     $('#refresh').value = state.st.refresh || 0;
     $('#optHideVim').checked = !!state.st.hideVim;
@@ -1333,11 +1340,16 @@
     });
     ps.addEventListener('change', function () {
       if (!ps.value) return;
-      state = Object.assign(clone(DEFAULTS), clone(PRESETS[ps.value].cfg));
+      var keep = state.dividerSet
+        ? { divider: state.divider, sep: state.sep, sepColor: state.sepColor, dividerSet: true }
+        : {};
+      state = Object.assign(clone(DEFAULTS), clone(PRESETS[ps.value].cfg), keep);
       selected = null;
       ps.value = '';
-      writeOptions(); save(); renderRows(); update();
-      window.toast('Preset loaded');
+      writeOptions(); save(); renderPalette(); renderRows(); update();
+      window.toast(state.dividerSet
+        ? 'Preset loaded — your divider setting was kept'
+        : 'Preset loaded');
     });
 
     // terminal colour schemes and fonts (preview only)
@@ -1392,14 +1404,24 @@
     });
     $('#padding').addEventListener('input', readOptions);
     $('#refresh').addEventListener('input', readOptions);
-    $('#sep').addEventListener('input', readOptions);
+    // Typing a mark is an unambiguous request for a divider, and clearing the
+    // field is an unambiguous request for none — so the checkbox follows.
+    $('#sep').addEventListener('input', function () {
+      $('#optDivider').checked = $('#sep').value.trim().length > 0;
+      state.dividerSet = true;
+      readOptions();
+      markPresets();
+    });
+    $('#optDivider').addEventListener('change', function () { state.dividerSet = true; });
 
     $('#sepPresets').addEventListener('click', function (e) {
       var b = e.target.closest('[data-sep]');
       if (!b) return;
       $('#sep').value = b.dataset.sep;
       $('#optDivider').checked = b.dataset.sep.trim().length > 0;
+      state.dividerSet = true;
       readOptions();
+      markPresets();
     });
 
     $('#addRow').addEventListener('click', function () {
@@ -1410,7 +1432,7 @@
     $('#reset').addEventListener('click', function () {
       state = Object.assign(clone(DEFAULTS), clone(PRESETS.grid.cfg));
       selected = null;
-      writeOptions(); save(); renderRows(); update();
+      writeOptions(); save(); renderPalette(); renderRows(); update();
       window.toast('Reset to the default layout');
     });
 
