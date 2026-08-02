@@ -366,26 +366,34 @@
   }
 
   function configJSON() {
-    // Compact and key-ordered so the same layout always produces the same string.
-    return JSON.stringify({
-      v: 2, align: !!state.align, icons: !!state.icons, links: !!state.links,
-      st: {
-        refresh: Number(state.st.refresh) || 0,
-        // drawing vim.mode yourself means the built-in indicator has to go
-        hideVim: usesField('vim')
-      },
+    // Compact and key-ordered so the same layout always produces the same
+    // string, and defaults are left out so the line stays readable.
+    var o = {
+      v: 2,
       rows: state.rows.map(function (row) {
         return row.map(function (cell) {
-          var o = { f: cell.f, c: cell.c || 'default' };
-          if (cell.f === 'text') o.t = cell.t || '';
-          if (cell.i === false) o.i = false;
-          if (cell.c === 'ramp') o.r = rampOf(cell).join(',');
-          if (cell.f === 'rule' && cell.t === 'fit') o.t = 'fit';
-          if ((cell.c === 'ramp' || cell.c === 'heat') && cell.b) o.b = cell.b;
-          return o;
+          var c = { f: cell.f };
+          if (cell.c && cell.c !== 'default') c.c = cell.c;
+          if (cell.f === 'text') c.t = cell.t || '';
+          if (cell.f === 'rule' && cell.t === 'fit') c.t = 'fit';
+          if (cell.i === false) c.i = false;
+          if (cell.c === 'ramp') {
+            var r = rampOf(cell).join(',');
+            if (r !== RAMP_DEFAULT.join(',')) c.r = r;   // the default is built in
+          }
+          if ((cell.c === 'ramp' || cell.c === 'heat') && cell.b) c.b = cell.b;
+          return c;
         });
       })
-    });
+    };
+    if (!state.align) o.align = false;      // true is the default
+    if (!state.icons) o.icons = false;      // true is the default
+    if (state.links) o.links = true;        // false is the default
+    var st = {};
+    if (state.st.refresh) st.refresh = Number(state.st.refresh);
+    if (usesField('vim')) st.hideVim = true;
+    if (Object.keys(st).length) o.st = st;
+    return JSON.stringify(o);
   }
 
   // ------------------------------------------------------------ persistence

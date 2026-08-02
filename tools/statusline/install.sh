@@ -31,6 +31,17 @@ case $(( ${#b64} % 4 )) in 2) b64="$b64==" ;; 3) b64="$b64=" ;; esac
 CONFIG=$(printf '%s' "$b64" | base64 -d 2>/dev/null) || die "the config argument is not valid base64"
 printf '%s' "$CONFIG" | jq -e . >/dev/null 2>&1 || die "the decoded config is not valid JSON"
 
+# --- check settings.json before writing anything ---------------------------
+# Follow a symlink so we edit the real file, not replace the link.
+if [ -L "$SETTINGS" ]; then
+  SETTINGS=$(readlink -f "$SETTINGS")
+  info "settings.json is a symlink -> $SETTINGS"
+fi
+if [ -f "$SETTINGS" ]; then
+  jq -e . "$SETTINGS" >/dev/null 2>&1 ||
+    die "$SETTINGS is not valid JSON — fix it first, nothing was changed"
+fi
+
 # --- fetch the runtime -----------------------------------------------------
 info "fetching statusline.sh"
 TEMPLATE=$(curl -fsSL "$BASE/tools/statusline/statusline.sh") || die "could not download the runtime script"
@@ -52,15 +63,12 @@ chmod +x "$SCRIPT"
 info "wrote $SCRIPT"
 
 # --- patch settings.json ---------------------------------------------------
-# Follow a symlink so we edit the real file, not replace the link.
-if [ -L "$SETTINGS" ]; then
-  SETTINGS=$(readlink -f "$SETTINGS")
-  info "settings.json is a symlink -> $SETTINGS"
+if [ -f "$SETTINGS" ]; then
+  cp "$SETTINGS" "$SETTINGS.bak.$(date +%Y%m%d_%H%M%S)"
+else
+  mkdir -p "$(dirname "$SETTINGS")"
+  printf '{}\n' > "$SETTINGS"
 fi
-[ -f "$SETTINGS" ] || printf '{}\n' > "$SETTINGS"
-cp "$SETTINGS" "$SETTINGS.bak.$(date +%Y%m%d_%H%M%S)"
-
-jq -e . "$SETTINGS" >/dev/null 2>&1 || die "$SETTINGS is not valid JSON — fix it first, nothing was changed"
 
 # refreshInterval and hideVimModeIndicator ride along in the config's `st`
 # block. The script ignores them; they belong to settings.json.

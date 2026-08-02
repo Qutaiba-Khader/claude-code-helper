@@ -7,7 +7,7 @@
 #
 # To change the layout, either re-run the builder or hand-edit the CONFIG line.
 
-CONFIG='{"v":2,"align":true,"icons":true,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"bar_tokens","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","r":"c46,c82,c118,c154,c190,c226,c220,c214,c208,c196","b":"dim"}],[{"f":"rule","c":"grey"}]]}'
+CONFIG='{"v":2,"rows":[[{"f":"cwd","c":"bold-blue"},{"f":"text","c":"grey","t":"|"},{"f":"branch","c":"bold-yellow"},{"f":"text","c":"grey","t":"|"},{"f":"model_ctx","c":"bold-cyan"}],[{"f":"bar_tokens","c":"ramp","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"effort","c":"dim"}],[{"f":"rl5","c":"ramp","b":"dim"},{"f":"text","c":"grey","t":"|"},{"f":"rl7","c":"ramp","b":"dim"}],[{"f":"rule","c":"grey"}]]}'
 
 input=$(cat)
 
@@ -97,8 +97,9 @@ basecode() {
 # ramp <comma-separated-colours> <percentage> — picks the band the value falls in.
 # Ten bands: 0-9, 10-19, … 90-100. Fewer colours than bands is fine; the list
 # is stretched to cover the range.
+RAMP_DEFAULT='c46,c82,c118,c154,c190,c226,c220,c214,c208,c196'
 ramp_colour() {
-  local list=$1 pctv=${2%%.*} n i band
+  local list=${1:-$RAMP_DEFAULT} pctv=${2%%.*} n i band
   case "$pctv" in ''|*[!0-9]*) pctv=0 ;; esac
   [ "$pctv" -gt 100 ] && pctv=100
   IFS=',' read -r -a RC <<<"$list"
@@ -154,7 +155,7 @@ countdown() {  # unix epoch seconds, or an ISO-8601 timestamp
 }
 
 dur() {  # milliseconds -> 1h04m / 12m / 45s
-  local ms=${1:-0} sec
+  local ms=$1 sec
   case "$ms" in ''|*[!0-9]*) return ;; esac
   sec=$(( ms / 1000 ))
   if   [ "$sec" -ge 3600 ]; then printf '%dh%02dm' $(( sec / 3600 )) $(( sec % 3600 / 60 ))
@@ -385,7 +386,7 @@ for line in "${CELLS[@]}"; do
   if [ "$c" = "heat" ]; then
     FMT[$r,$idx]=$(heat "$(heatval "$f")")
     BASE[$r,$idx]=$(colour "${b:-default}")
-  elif [ "$c" = "ramp" ] && [ -n "$ramp" ]; then
+  elif [ "$c" = "ramp" ]; then
     FMT[$r,$idx]=$(ramp_colour "$ramp" "$(heatval "$f")")
     BASE[$r,$idx]=$(colour "${b:-default}")
   else
